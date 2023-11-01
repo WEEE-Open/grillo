@@ -1,0 +1,22 @@
+{
+	"name": "grillo",
+	"version": "1.0.0",
+	"description": "A tool to manage presence in lab",
+	"devDependencies": {
+		"concurrently": "^8.0.1"
+	},
+	"workspaces": [
+		"frontend",
+		"backend"
+	],
+	"scripts": {
+	  "frontend:dev": "cd frontend && npm run dev",
+	  "frontend:prod": "cd frontend && npm run build",
+	  "backend:dev": "cd backend && npm run dev",
+	  "backend:prod": "cd backend && npm run prod",
+	  "dev": "concurrently --names \"BACKEND,FRONTEND\" -c \"bgBlue.bold,bgMagenta.bold\" \"npm run backend:dev\" \"npm run frontend:dev\"",
+	  "prod": "npm run frontend:prod && npm run backend:prod"
+	},
+	"author": "WEEE Open",
+	"license": "MIT"
+}
