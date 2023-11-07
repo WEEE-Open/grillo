@@ -8,18 +8,21 @@ ENV DEVELOPMENT=${DEVELOPMENT}
 # Working directory
 WORKDIR /usr/src/app
 
-# Copy source code
-COPY . .
 # I know this is supposed to be after npm install but for whatever reason vite doesn't get installed if I do that
 
 # Copy package.json and package-lock.json
-# COPY package*.json ./
+COPY package*.json ./
+COPY backend/package*.json ./backend/
+COPY frontend/package*.json ./frontend/
 
 # Install dependencies
 RUN npm install
 
+# Copy source code
+COPY . .
+
 RUN if [ "$DEVELOPMENT" != "true" ]; \
-	then npm run frontend:dev; \
+	then npm run frontend:prod; \
 fi
 
 # Expose ports

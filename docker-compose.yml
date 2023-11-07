@@ -1,7 +1,14 @@
 version: "3.8"
 services:
   server:
-    build: "."
+    build: 
+      context: "."
+      args:
+        DEVELOPMENT: ${DEVELOPMENT}
+    volumes:
+      - type: bind
+        source: ./backend
+        target: /usr/src/app/backend
     ports:
       - "3000:3000"
       - "5173:5173"

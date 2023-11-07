@@ -15,7 +15,10 @@
 	  "backend:dev": "cd backend && npm run dev",
 	  "backend:prod": "cd backend && npm run prod",
 	  "dev": "concurrently --names \"BACKEND,FRONTEND\" -c \"bgBlue.bold,bgMagenta.bold\" \"npm run backend:dev\" \"npm run frontend:dev\"",
-	  "prod": "npm run frontend:prod && npm run backend:prod"
+	  "prod": "npm run frontend:prod && npm run backend:prod",
+	  "docker:up": "docker-compose up -d",
+	  "docker:down": "docker-compose down",
+	  "docker:rebuild": "docker-compose down && docker-compose build --no-cache && docker-compose up -d"
 	},
 	"author": "WEEE Open",
 	"license": "MIT"
