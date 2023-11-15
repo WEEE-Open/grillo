@@ -1,35 +1,19 @@
 import sqlite3 from 'sqlite3'
 
+const db = new sqlite3.Database('grillo.db', (err) => { if (err) throw err; });
+db.run('CREATE TABLE IF NOT EXISTS users (id STRING PRIMARY KEY, minutes INTEGER, inlab BOOLEAN, lastUpdate TIMESTAMP, lastMinutes INTEGER, HasKey BOOLEAN)');
+db.run('CREATE TABLE IF NOT EXISTS audit (user_id STRING PRIMARY KEY, title TEXT,  content TEXT)');
+db.run('CREATE TABLE IF NOT EXISTS booking (user_id STRING PRIMARY KEY, time TIMESTAMP SECONDARY KEY)');
 
-class DAO {
-
-    constructor() {
-        this.createDatabase()
-        this.createTables();
-
-    };
-    // Connect to SQLite database (or create a new one if it doesn't exist)
-    createDatabase() {
-        this.db = new sqlite3.Database('myDatabase.db');
-    }
-
-    createTables() {
-        // Create a table named 'users'
-        this.db.run('CREATE TABLE IF NOT EXISTS users (id STRING PRIMARY KEY, minutes INTEGER, inlab BOOLEAN, lastUpdate TIMESTAMP, lastMinutes INTEGER, HasKey BOOLEAN)');
-
-        // Create another table named 'posts'
-        this.db.run('CREATE TABLE IF NOT EXISTS audit (FOREIGN KEY(user_id) REFERENCES users(id), title TEXT, content TEXT, user_id INTEGER)');
-    }
-
-    closeDB() {
-        // Close the database connection
-        this.db.close((err) => {
-            if (err) {
-                return console.error(err.message);
-            }
-            console.log('Database connection closed.');
-        });
-
-    }
+export let addBooking = (user_id, time) => {
+    return new Promise((resolve, reject) => {
+      const sql = "INSERT INTO booking (user_id, time) VALUES (?, ?);";
+      db.run(sql, [user_id, time], (err) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve(null);
+      });
+    })
 }
-export default DAO;
