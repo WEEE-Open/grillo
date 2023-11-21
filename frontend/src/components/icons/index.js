@@ -4,10 +4,11 @@ import IconEcosystem from './IconEcosystem.vue'
 import IconSupport from './IconSupport.vue'
 import IconTooling from './IconTooling.vue'
 
-export {
+const Icons = {
     IconCommunity,
     IconDocumentation,
     IconEcosystem,
     IconSupport,
     IconTooling,
 }
+export default Icons
