@@ -6,7 +6,7 @@ let router = express.Router();
 router.use(express.json());
 
 router.get('/ping', (req, res) => {
-    res.send('pong');
+    res.send('pongo');
 });
 
 router.get('/book', async (req, res) => {
