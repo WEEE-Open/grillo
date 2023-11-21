@@ -13,6 +13,9 @@ const argv = yargs(process.argv)
   .alias('help', 'h').argv;
 
 import api from './api.js';
+import { Database } from './DB/db.js';
+
+export const db = new Database('./DB/grillo.db');
 
 let app = express();
 app.use(express.json());
