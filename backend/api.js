@@ -1,6 +1,6 @@
 import config from './config.js';
 import express from 'express';
-import {addBooking} from './DAO.js' 
+import { db } from './index.js';
 
 let router = express.Router();
 router.use(express.json());
@@ -10,9 +10,25 @@ router.get('/ping', (req, res) => {
 });
 
 router.get('/book', async (req, res) => {
-    await addBooking('test', 123)
-    .then(res.sendStatus(200))
-    .catch(err => res.status(503).json({errors: err.array()}))
-})
+    try{
+        const booking = await db.addBooking('test', 123);
+        res.sendStatus(200);
+    }
+    catch (error){
+        console.error(error);
+        res.status(503).json(error);
+    }
+});
+
+router.get('/users/me', async (req, res) => {
+    try{
+        const user = await db.getUser('UID1');
+        res.json(user);
+    }
+    catch (error){
+        console.error(error);
+        res.status(503).json(error);
+    }
+});
 
 export default router;

@@ -1,9 +1,11 @@
 FROM node:latest
 
 ARG DEVELOPMENT
+ARG ADDJUNKDATA
 
 # Expose environment variables
 ENV DEVELOPMENT=${DEVELOPMENT}
+ENV ADDJUNKDATA=${ADDJUNKDATA}
 
 # Working directory
 WORKDIR /usr/src/app
@@ -20,6 +22,13 @@ RUN npm install
 
 # Copy source code
 COPY . .
+
+RUN if [ "$ADDJUNKDATA" = "true" ]; \
+	then npm run addJunkData; \
+else \
+	npm run createDB; \
+fi
+
 
 RUN if [ "$DEVELOPMENT" != "true" ]; \
 	then npm run frontend:prod; \

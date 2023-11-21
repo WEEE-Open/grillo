@@ -10,6 +10,8 @@
 		"backend"
 	],
 	"scripts": {
+		"createDB": "cd backend/DB && node ./createDB.js",
+		"addJunkData": "cd backend/DB && node ./createDB.js -j",
 		"frontend:dev": "cd frontend && npm run dev",
 		"frontend:prod": "cd frontend && npm run build",
 		"backend:dev": "cd backend && npm run dev",
@@ -21,8 +23,5 @@
 		"docker:rebuild": "docker-compose down && docker-compose build --no-cache && docker-compose up -d"
 	},
 	"author": "WEEE Open",
-	"license": "MIT",
-	"dependencies": {
-		"sqlite3": "^5.1.6"
-	}
+	"license": "MIT"
 }
