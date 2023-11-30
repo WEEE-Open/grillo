@@ -20,7 +20,20 @@ export class Database{
                 resolve(null);
             });
         })
-    
+    }
+
+    deleteBooking(user_id, time) {
+        return new Promise((resolve, reject) => {
+            const sql = "DELETE FROM booking WHERE user_id = ? AND time = ?;";
+            // add error or warning in case the values are not in the db
+            this.db.run(sql, [user_id, time], (err) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                resolve(null);
+            });
+        })
     }
 
     // #endregion
@@ -29,7 +42,7 @@ export class Database{
     
     getUser(user_id) {
         return new Promise((resolve, reject) => {
-            const sql = "SELECT * FROM USER WHERE id=?;";
+            const sql = "SELECT * FROM user WHERE id=?;";
             this.db.get(sql, [user_id], (err, row) => {
                 if (err) {
                     reject(err);
@@ -39,6 +52,29 @@ export class Database{
                 resolve(new User(row.id, row.minutes, row.inlab, row.lastUpdate, row.lastMinutes, row.hashKey));
             });
         });
+    }
+
+    // #endregion
+
+    // #region audit
+
+        // to check: should we have two different functions for entrance and exit?
+    addAudit(user_id, time, enter, motivation) {
+        return new Promise((resolve, reject) => {
+            if (enter == TRUE){
+                const sql = "INSERT INTO audit (user_id, time, enter) VALUES (?, ?, ?);";
+            } else {
+                const sql = "INSERT INTO audit (user_id, time, enter, motivation) VALUES (?, ?, ?, ?);";
+            }
+            
+            this.db.run(sql, [user_id, time], (err) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                resolve(null);
+            });
+        })
     }
 
     // #endregion
@@ -90,115 +126,6 @@ export class Database{
     
             });
         });
-    };
-    
-    insertData(){
-        return new Promise((resolve, reject) => {
-            this.db.serialize(() => {
-    
-                //users
-    
-                this.db.run("INSERT INTO user (id, minutes, inlab, lastUpdate, lastMinutes, hasKey) VALUES ('UID1', 0, false, '2023-11-21T09:54:08+00:00', 0, true)"
-                    , (err) => {
-                        if (err) {
-                            reject(err);
-                        }
-                        resolve();
-                    });
-                this.db.run("INSERT INTO user (id, minutes, inlab, lastUpdate, lastMinutes, hasKey) VALUES ('UID2', 0, false, '2023-11-21T09:54:08+00:00', 0, false)"
-                    , (err) => {
-                        if (err) {
-                            reject(err);
-                        }
-                        resolve();
-                    });
-                this.db.run("INSERT INTO user (id, minutes, inlab, lastUpdate, lastMinutes, hasKey) VALUES ('UID3', 0, false, '2023-11-21T09:54:08+00:00', 0, false)"
-                    , (err) => {
-                        if (err) {
-                            reject(err);
-                        }
-                        resolve();
-                    });
-                this.db.run("INSERT INTO user (id, minutes, inlab, lastUpdate, lastMinutes, hasKey) VALUES ('UID4', 0, false, '2023-11-21T09:54:08+00:00', 0, false)"
-                    , (err) => {
-                        if (err) {
-                            reject(err);
-                        }
-                        resolve();
-                    });
-    
-                //audits
-    
-                this.db.run("INSERT INTO audit (user_id, time, enter, motivation) VALUES ('UID2', '2023-11-21T09:54:08+00:00', true, '')"
-                    , (err) => {
-                        if (err) {
-                            reject(err);
-                        }
-                        resolve();
-                    });
-                this.db.run("INSERT INTO audit (user_id, time, enter, motivation) VALUES ('UID3', '2023-11-21T09:54:08+00:00', true, '')"
-                    , (err) => {
-                        if (err) {
-                            reject(err);
-                        }
-                        resolve();
-                    });
-                this.db.run("INSERT INTO audit (user_id, time, enter, motivation) VALUES ('UID1', '2023-11-21T09:54:08+00:00', true, '')"
-                    , (err) => {
-                        if (err) {
-                            reject(err);
-                        }
-                        resolve();
-                    });
-                this.db.run("INSERT INTO audit (user_id, time, enter, motivation) VALUES ('UID4', '2023-11-21T09:54:08+00:00', true, '')"
-                    , (err) => {
-                        if (err) {
-                            reject(err);
-                        }
-                        resolve();
-                    });
-                this.db.run("INSERT INTO audit (user_id, time, enter, motivation) VALUES ('UID2', '2023-11-21T11:54:08+00:00', false, 'nessuna')"
-                    , (err) => {
-                        if (err) {
-                            reject(err);
-                        }
-                        resolve();
-                    });
-                this.db.run("INSERT INTO audit (user_id, time, enter, motivation) VALUES ('UID3', '2023-11-21T11:54:08+00:00', false, 'nessuna')"
-                    , (err) => {
-                        if (err) {
-                            reject(err);
-                        }
-                        resolve();
-                    });
-                this.db.run("INSERT INTO audit (user_id, time, enter, motivation) VALUES ('UID4', '2023-11-21T11:54:08+00:00', false, 'nessuna')"
-                    , (err) => {
-                        if (err) {
-                            reject(err);
-                        }
-                        resolve();
-                    });
-                this.db.run("INSERT INTO audit (user_id, time, enter, motivation) VALUES ('UID1', '2023-11-21T11:54:08+00:00', false, 'nessuna')"
-                    , (err) => {
-                        if (err) {
-                            reject(err);
-                        }
-                        resolve();
-                    });
-    
-                //bookings
-    
-                this.db.run("INSERT INTO booking (user_id, time) VALUES ('UID2', '2023-11-21T09:54:08+00:00')"
-                    , (err) => {
-                        if (err) {
-                            reject(err);
-                        }
-                        resolve();
-                    });
-    
-                resolve()
-            });
-        })
     };
     
     emptyTables(){

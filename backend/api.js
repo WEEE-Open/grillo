@@ -20,6 +20,18 @@ router.get('/book', async (req, res) => {
     }
 });
 
+router.get('/nobook', async (req, res) => {
+    try{
+        const booking = await db.deleteBooking('test', 123);
+        res.sendStatus(200);
+    }
+    catch (error){
+        console.error(error);
+        res.status(503).json(error);
+    }
+});
+
+
 router.get('/users/me', async (req, res) => {
     try{
         const user = await db.getUser('UID1');
