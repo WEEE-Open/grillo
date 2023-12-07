@@ -48,28 +48,28 @@ async function insertData(db){
 
             //users
 
-            db.run("INSERT INTO user (id, minutes, inlab, lastUpdate, lastMinutes, hasKey) VALUES ('UID1', 0, false, '2023-11-21T09:54:08+00:00', 0, true)"
+            db.run("INSERT INTO user (id, seconds, inlab, lastUpdate, lastSeconds, hasKey) VALUES ('UID1', 0, false, '2023-11-21T09:54:08+00:00', 0, true)"
                 , (err) => {
                     if (err) {
                         reject(err);
                     }
                     resolve();
                 });
-            db.run("INSERT INTO user (id, minutes, inlab, lastUpdate, lastMinutes, hasKey) VALUES ('UID2', 0, false, '2023-11-21T09:54:08+00:00', 0, false)"
+            db.run("INSERT INTO user (id, seconds, inlab, lastUpdate, lastSeconds, hasKey) VALUES ('UID2', 0, false, '2023-11-21T09:54:08+00:00', 0, false)"
                 , (err) => {
                     if (err) {
                         reject(err);
                     }
                     resolve();
                 });
-            db.run("INSERT INTO user (id, minutes, inlab, lastUpdate, lastMinutes, hasKey) VALUES ('UID3', 0, false, '2023-11-21T09:54:08+00:00', 0, false)"
+            db.run("INSERT INTO user (id, seconds, inlab, lastUpdate, lastSeconds, hasKey) VALUES ('UID3', 0, false, '2023-11-21T09:54:08+00:00', 0, false)"
                 , (err) => {
                     if (err) {
                         reject(err);
                     }
                     resolve();
                 });
-            db.run("INSERT INTO user (id, minutes, inlab, lastUpdate, lastMinutes, hasKey) VALUES ('UID4', 0, false, '2023-11-21T09:54:08+00:00', 0, false)"
+            db.run("INSERT INTO user (id, seconds, inlab, lastUpdate, lastSeconds, hasKey) VALUES ('UID4', 0, false, '2023-11-21T09:54:08+00:00', 0, false)"
                 , (err) => {
                     if (err) {
                         reject(err);

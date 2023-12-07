@@ -49,7 +49,7 @@ export class Database{
                     return;
                 }
                 console.log(row)
-                resolve(new User(row.id, row.minutes, row.inlab, row.lastUpdate, row.lastMinutes, row.hashKey));
+                resolve(new User(row.id, row.seconds, row.inlab, row.lastUpdate, row.lastSeconds, row.hashKey));
             });
         });
     }
@@ -58,14 +58,9 @@ export class Database{
 
     // #region audit
 
-        // to check: should we have two different functions for entrance and exit?
-    addAudit(user_id, time, enter, motivation) {
+    deleteAudit(user_id, time, enter, motivation) {
         return new Promise((resolve, reject) => {
-            if (enter == TRUE){
-                const sql = "INSERT INTO audit (user_id, time, enter) VALUES (?, ?, ?);";
-            } else {
-                const sql = "INSERT INTO audit (user_id, time, enter, motivation) VALUES (?, ?, ?, ?);";
-            }
+            const sql = "DELETE FROM audit WHERE user_id = ? AND time = ?;";
             
             this.db.run(sql, [user_id, time], (err) => {
                 if (err) {
@@ -74,6 +69,56 @@ export class Database{
                 }
                 resolve(null);
             });
+        })
+    }
+
+    addEntrance(user_id, time, enter) {
+        return new Promise((resolve, reject) => {
+            const sql = "INSERT INTO audit (user_id, time, enter, motivation) VALUES (?, ?, ?, '');";
+            
+            this.db.run(sql, [user_id, time, enter], (err) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                resolve(null);
+            });
+        })
+    }
+
+    addExit(user_id, time, enter, motivation) {
+        return new Promise(async (resolve, reject) => {
+            const sql_time = "SELECT time FROM audit WHERE user_id = ? and enter = true ORDER BY time DESC LIMIT 1;"
+            this.db.get(sql_time, [user_id], (err, row) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                const enter_time = new Date(row.time);
+                const exit_time = new Date(time);
+                // time in seconds
+                const delta_time = (exit_time-enter_time)/1000;
+
+                // DOESN'T WORK
+                const sql_update = "UPDATE user SET seconds = seconds + ? WHERE user_id = ?;"
+                this.db.run(sql_update, [delta_time, user_id], (err) => {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+                    resolve(null);
+                }); 
+            });
+
+            const sql = "INSERT INTO audit (user_id, time, enter, motivation) VALUES (?, ?, ?, ?);";
+            
+            this.db.run(sql, [user_id, time, enter, motivation], (err) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                resolve(null);
+            }); 
         })
     }
 
@@ -92,7 +137,7 @@ export class Database{
     createTables(){
         return new Promise((resolve, reject) => {
             this.db.serialize(() => {
-                this.db.run('CREATE TABLE IF NOT EXISTS user (id STRING PRIMARY KEY, minutes INTEGER, inlab BOOLEAN, lastUpdate TIMESTAMP, lastMinutes INTEGER, hasKey BOOLEAN)'
+                this.db.run('CREATE TABLE IF NOT EXISTS user (id STRING PRIMARY KEY, seconds INTEGER, inlab BOOLEAN, lastUpdate TIMESTAMP, lastSeconds INTEGER, hasKey BOOLEAN)'
                     , (err) => {
                         if (err) {
                             reject(err);
