@@ -45,3 +45,11 @@ export class User{
     }
 
 }
+
+export class Booking{
+    constructor(userId, time, hasKey){
+        this.userId = userId;
+        this.time = time;
+        this.hasKey = hasKey;
+    }
+}

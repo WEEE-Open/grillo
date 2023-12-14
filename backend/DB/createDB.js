@@ -79,56 +79,56 @@ async function insertData(db){
 
             //audits
 
-            db.run("INSERT INTO audit (user_id, time, enter, motivation) VALUES ('UID2', '2023-11-21T09:54:08+00:00', true, '')"
+            db.run("INSERT INTO audit (userId, time, enter, motivation) VALUES ('UID2', '2023-11-21T09:54:08+00:00', true, NULL)"
                 , (err) => {
                     if (err) {
                         reject(err);
                     }
                     resolve();
                 });
-            db.run("INSERT INTO audit (user_id, time, enter, motivation) VALUES ('UID3', '2023-11-21T09:54:08+00:00', true, '')"
+            db.run("INSERT INTO audit (userId, time, enter, motivation) VALUES ('UID3', '2023-11-21T09:54:08+00:00', true, NULL)"
                 , (err) => {
                     if (err) {
                         reject(err);
                     }
                     resolve();
                 });
-            db.run("INSERT INTO audit (user_id, time, enter, motivation) VALUES ('UID1', '2023-11-21T09:54:08+00:00', true, '')"
+            db.run("INSERT INTO audit (userId, time, enter, motivation) VALUES ('UID1', '2023-11-21T09:54:08+00:00', true, NULL)"
                 , (err) => {
                     if (err) {
                         reject(err);
                     }
                     resolve();
                 });
-            db.run("INSERT INTO audit (user_id, time, enter, motivation) VALUES ('UID4', '2023-11-21T09:54:08+00:00', true, '')"
+            db.run("INSERT INTO audit (userId, time, enter, motivation) VALUES ('UID4', '2023-11-21T09:54:08+00:00', true, NULL)"
                 , (err) => {
                     if (err) {
                         reject(err);
                     }
                     resolve();
                 });
-            db.run("INSERT INTO audit (user_id, time, enter, motivation) VALUES ('UID2', '2023-11-21T11:54:08+00:00', false, 'nessuna')"
+            db.run("INSERT INTO audit (userId, time, enter, motivation) VALUES ('UID2', '2023-11-21T11:54:08+00:00', false, 'nessuna')"
                 , (err) => {
                     if (err) {
                         reject(err);
                     }
                     resolve();
                 });
-            db.run("INSERT INTO audit (user_id, time, enter, motivation) VALUES ('UID3', '2023-11-21T11:54:08+00:00', false, 'nessuna')"
+            db.run("INSERT INTO audit (userId, time, enter, motivation) VALUES ('UID3', '2023-11-21T11:54:08+00:00', false, 'nessuna')"
                 , (err) => {
                     if (err) {
                         reject(err);
                     }
                     resolve();
                 });
-            db.run("INSERT INTO audit (user_id, time, enter, motivation) VALUES ('UID4', '2023-11-21T11:54:08+00:00', false, 'nessuna')"
+            db.run("INSERT INTO audit (userId, time, enter, motivation) VALUES ('UID4', '2023-11-21T11:54:08+00:00', false, 'nessuna')"
                 , (err) => {
                     if (err) {
                         reject(err);
                     }
                     resolve();
                 });
-            db.run("INSERT INTO audit (user_id, time, enter, motivation) VALUES ('UID1', '2023-11-21T11:54:08+00:00', false, 'nessuna')"
+            db.run("INSERT INTO audit (userId, time, enter, motivation) VALUES ('UID1', '2023-11-21T11:54:08+00:00', false, 'nessuna')"
                 , (err) => {
                     if (err) {
                         reject(err);
@@ -138,7 +138,7 @@ async function insertData(db){
 
             //bookings
 
-            db.run("INSERT INTO booking (user_id, time) VALUES ('UID2', '2023-11-21T09:54:08+00:00')"
+            db.run("INSERT INTO booking (userId, time) VALUES ('UID2', '2023-11-21T09:54:08+00:00')"
                 , (err) => {
                     if (err) {
                         reject(err);
