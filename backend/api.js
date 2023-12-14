@@ -47,7 +47,7 @@ router.get('/auditIn', async (req, res) => {
 
 router.get('/auditOut', async (req, res) => {
     try{
-        const audit = await db.addExit('UID1', '2023-12-02T12:54:08+00:00', false, 'boh');
+        const audit = await db.addExit('UID1', '2023-12-02T10:54:08+00:00', false, 'boh');
         res.sendStatus(200);
     }
     catch (error){
@@ -59,7 +59,7 @@ router.get('/auditOut', async (req, res) => {
 
 router.get('/auditDel', async (req, res) => {
     try{
-        const audit = await db.deleteAudit('UID1', '2023-12-02T12:54:08+00:00');
+        const audit = await db.deleteAudit('UID1', '2023-12-02T10:54:08+00:00');
         res.sendStatus(200);
     }
     catch (error){
