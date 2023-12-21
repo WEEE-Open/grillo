@@ -2,7 +2,7 @@ import config from './config.js';
 import express from 'express';
 import { db } from './index.js';
 import dayjs from 'dayjs';
-import cors from  'cors';
+//import cors from  'cors';
 import bodyParser from 'body-parser';
 
 
@@ -13,7 +13,7 @@ const corsOptions = {
     optionsSuccessStatus: 200,
     credentials: true
 }
-router.use(cors(corsOptions)); 
+//router.use(cors(corsOptions)); 
 router.use(bodyParser.json());
 router.use(express.json());
 
@@ -97,7 +97,7 @@ router.delete('/bookings', async (req, res) => {
 /*
     Create an audit
 */
-router.post('/audits', async (req, res) => {
+router.post('/add_audit', async (req, res) => {
     try{
         if(req.body.motivation.length > 100){
             res.status(400).json({error: "Invalid motivation"});
@@ -140,10 +140,39 @@ router.get('/audits', async (req, res) => {
     }
 });
 
+router.get('/get_audits', async (req, res) => {
+    try{
+        let results = await db.getAudit();
+        res.sendStatus(200);
+        console.log(results);
+    }
+    catch (error){
+        console.error(error);
+        res.status(503).json(error);
+    }
+});
+
+
+/*
+    Get stat
+*/
+
+router.get('/get_stats', async (req, res) => {
+    try{
+        let results = await db.getStats();
+        res.sendStatus(200);
+        console.log(results);
+    }
+    catch (error){
+        console.error(error);
+        res.status(503).json(error);
+    }
+});
+
 /*
     Delete an audit
 */
-router.delete('/audit', async (req, res) => {
+router.delete('/del_audit', async (req, res) => {
     try{
         const time = dayjs(req.body.time);
         if(!time.isValid()){

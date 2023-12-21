@@ -135,7 +135,20 @@ async function insertData(db){
                     }
                     resolve();
                 });
-
+            db.run("INSERT INTO audit (userId, time, enter, motivation) VALUES ('UID1', '2023-11-21T14:00:08+00:00', true, NULL)"
+                , (err) => {
+                    if (err) {
+                        reject(err);
+                    }
+                    resolve();
+                });
+            db.run("INSERT INTO audit (userId, time, enter, motivation) VALUES ('UID1', '2023-11-21T16:30:08+00:00', false, 'qualcosa')"
+                , (err) => {
+                    if (err) {
+                        reject(err);
+                    }
+                    resolve();
+                });
             //bookings
 
             db.run("INSERT INTO booking (userId, time) VALUES ('UID2', '2023-11-21T09:54:08+00:00')"

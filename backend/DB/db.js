@@ -117,7 +117,7 @@ export class Database {
                 }
                 const enter_time = new Date(row.time);
                 const exit_time = new Date(time);
-                // time in seconds
+                // time spent in the lab (in seconds)
                 const delta_time = (exit_time - enter_time) / 1000;
                 console.log(enter_time, exit_time, delta_time);
 
@@ -140,6 +140,74 @@ export class Database {
             });
         })
     }
+
+
+    /**
+     * 
+     * @param {Date} startTime 
+     * @param {Date} endTime 
+     * @returns 
+     */
+    getAudit(startTime, endTime) {
+        return new Promise((resolve, reject) => {
+            const sql = `SELECT A1.userId, date(A1.time) AS date, time(A1.time) AS inTime, time(A2.time) AS outTime
+            FROM audit A1, audit A2 
+            WHERE A1.userId = A2.userId AND CAST(A1.time AS DATE) = CAST(A2.time AS) AND A1.enter = 1 AND A2.enter = 0 AND A1.time < A2.time
+            AND A2.time = (SELECT MIN(time) FROM audit A WHERE A.userId = A1.userId AND A1.time < A.time)`;
+
+            // check if it works with startTime and endTime
+            let param = [];
+            if (startTime != null){
+                sql += " AND date(A1.time) >= ?";
+                param.push(startTime);
+            }
+            if (endTime != null){
+                sql += " AND date(A2.time) <= ?";
+                param.push(endTime);
+            }
+            this.db.all(sql, param, (err, rows) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                resolve(rows);
+            });
+
+        });
+    } 
+
+    // #endregion
+
+    // #region stats
+    // in progress (to be finished)
+    getStats(startTime, endTime, users) {
+        return new Promise((resolve, reject) => {
+            const sql = `SELECT A1.userId, SUM(A2.time - A1.time) as stat
+            FROM audit A1, audit A2 
+            WHERE A1.userId = A2.userId AND CAST(A1.time AS DATE) = CAST(A2.time AS) AND A1.enter = 1 AND A2.enter = 0 AND A1.time < A2.time
+            AND A2.time = (SELECT MIN(time) FROM audit A WHERE A.userId = A1.userId AND A1.time < A.time)`;
+
+            let param = [];
+            if (startTime != null){
+                sql += " AND date(A1.time) >= ?";
+                param.push(startTime);
+            }
+            if (endTime != null){
+                sql += " AND date(A2.time) <= ?";
+                param.push(endTime);
+            }
+            sql += " GROUP BY A1.userId;"
+            this.db.all(sql, param, (err, rows) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                resolve(rows);
+            });
+
+        });
+    } 
+
 
     // #endregion
 
