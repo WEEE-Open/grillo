@@ -21,7 +21,7 @@ const createDatabase = async () => {
         if(argv.addJunkData){
             await db.emptyTables(); // Cleans the tables
             console.log("Cleaned tables");
-            await db.insertData(); // Insert data once tables are created
+            await insertData(db.db); // Insert data once tables are created
             console.log("Entries inserted");
         }
 
@@ -41,3 +41,125 @@ const createDatabase = async () => {
 };
 
 createDatabase();
+
+async function insertData(db){
+    return new Promise((resolve, reject) => {
+        db.serialize(() => {
+
+            //users
+
+            db.run("INSERT INTO user (id, seconds, inlab, lastUpdate, lastSeconds, hasKey) VALUES ('UID1', 0, false, '2023-11-21T09:54:08+00:00', 0, true)"
+                , (err) => {
+                    if (err) {
+                        reject(err);
+                    }
+                    resolve();
+                });
+            db.run("INSERT INTO user (id, seconds, inlab, lastUpdate, lastSeconds, hasKey) VALUES ('UID2', 0, false, '2023-11-21T09:54:08+00:00', 0, false)"
+                , (err) => {
+                    if (err) {
+                        reject(err);
+                    }
+                    resolve();
+                });
+            db.run("INSERT INTO user (id, seconds, inlab, lastUpdate, lastSeconds, hasKey) VALUES ('UID3', 0, false, '2023-11-21T09:54:08+00:00', 0, false)"
+                , (err) => {
+                    if (err) {
+                        reject(err);
+                    }
+                    resolve();
+                });
+            db.run("INSERT INTO user (id, seconds, inlab, lastUpdate, lastSeconds, hasKey) VALUES ('UID4', 0, false, '2023-11-21T09:54:08+00:00', 0, false)"
+                , (err) => {
+                    if (err) {
+                        reject(err);
+                    }
+                    resolve();
+                });
+
+            //audits
+
+            db.run("INSERT INTO audit (userId, time, enter, motivation) VALUES ('UID2', '2023-11-21T09:54:08+00:00', true, NULL)"
+                , (err) => {
+                    if (err) {
+                        reject(err);
+                    }
+                    resolve();
+                });
+            db.run("INSERT INTO audit (userId, time, enter, motivation) VALUES ('UID3', '2023-11-21T09:54:08+00:00', true, NULL)"
+                , (err) => {
+                    if (err) {
+                        reject(err);
+                    }
+                    resolve();
+                });
+            db.run("INSERT INTO audit (userId, time, enter, motivation) VALUES ('UID1', '2023-11-21T09:54:08+00:00', true, NULL)"
+                , (err) => {
+                    if (err) {
+                        reject(err);
+                    }
+                    resolve();
+                });
+            db.run("INSERT INTO audit (userId, time, enter, motivation) VALUES ('UID4', '2023-11-21T09:54:08+00:00', true, NULL)"
+                , (err) => {
+                    if (err) {
+                        reject(err);
+                    }
+                    resolve();
+                });
+            db.run("INSERT INTO audit (userId, time, enter, motivation) VALUES ('UID2', '2023-11-21T11:54:08+00:00', false, 'nessuna')"
+                , (err) => {
+                    if (err) {
+                        reject(err);
+                    }
+                    resolve();
+                });
+            db.run("INSERT INTO audit (userId, time, enter, motivation) VALUES ('UID3', '2023-11-21T11:54:08+00:00', false, 'nessuna')"
+                , (err) => {
+                    if (err) {
+                        reject(err);
+                    }
+                    resolve();
+                });
+            db.run("INSERT INTO audit (userId, time, enter, motivation) VALUES ('UID4', '2023-11-21T11:54:08+00:00', false, 'nessuna')"
+                , (err) => {
+                    if (err) {
+                        reject(err);
+                    }
+                    resolve();
+                });
+            db.run("INSERT INTO audit (userId, time, enter, motivation) VALUES ('UID1', '2023-11-21T11:54:08+00:00', false, 'nessuna')"
+                , (err) => {
+                    if (err) {
+                        reject(err);
+                    }
+                    resolve();
+                });
+            db.run("INSERT INTO audit (userId, time, enter, motivation) VALUES ('UID1', '2023-11-21T14:00:08+00:00', true, NULL)"
+                , (err) => {
+                    if (err) {
+                        reject(err);
+                    }
+                    resolve();
+                });
+            db.run("INSERT INTO audit (userId, time, enter, motivation) VALUES ('UID1', '2023-11-21T16:30:08+00:00', false, 'qualcosa')"
+                , (err) => {
+                    if (err) {
+                        reject(err);
+                    }
+                    resolve();
+                });
+            //bookings
+
+            db.run("INSERT INTO booking (userId, time) VALUES ('UID2', '2023-11-21T09:54:08+00:00')"
+                , (err) => {
+                    if (err) {
+                        reject(err);
+                    }
+                    resolve();
+                });
+
+            resolve()
+        });
+    })
+};
