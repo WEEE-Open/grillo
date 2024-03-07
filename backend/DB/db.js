@@ -148,14 +148,15 @@ export class Database {
      * @param {Date} endTime 
      * @returns 
      */
-    getAudit(startTime, endTime) {
+    // add the possibility to select the Audit of certain users
+    // Add the possibility for admins to edit Audit
+    getAudit(startTime, endTime, user) {
         return new Promise((resolve, reject) => {
-            const sql = `SELECT A1.userId, date(A1.time) AS date, time(A1.time) AS inTime, time(A2.time) AS outTime
+            let sql = `SELECT A1.userId, date(A1.time) AS date, time(A1.time) AS inTime, time(A2.time) AS outTime, A2.motivation
             FROM audit A1, audit A2 
             WHERE A1.userId = A2.userId AND CAST(A1.time AS DATE) = CAST(A2.time AS) AND A1.enter = 1 AND A2.enter = 0 AND A1.time < A2.time
             AND A2.time = (SELECT MIN(time) FROM audit A WHERE A.userId = A1.userId AND A1.time < A.time)`;
 
-            // check if it works with startTime and endTime
             let param = [];
             if (startTime != null){
                 sql += " AND date(A1.time) >= ?";
@@ -164,6 +165,10 @@ export class Database {
             if (endTime != null){
                 sql += " AND date(A2.time) <= ?";
                 param.push(endTime);
+            }
+            if (user != null){
+                sql += " AND A1.userId = ?;";
+                param.push(user);
             }
             this.db.all(sql, param, (err, rows) => {
                 if (err) {
@@ -179,24 +184,28 @@ export class Database {
     // #endregion
 
     // #region stats
-    // in progress (to be finished)
-    getStats(startTime, endTime, users) {
+    // select a single user (not multiple)
+    getStats(startTime, endTime, user) {
         return new Promise((resolve, reject) => {
-            const sql = `SELECT A1.userId, SUM(A2.time - A1.time) as stat
+            let sql = `SELECT A1.userId, SUM(time(A2.time) - time(A1.time)) as stat
             FROM audit A1, audit A2 
             WHERE A1.userId = A2.userId AND CAST(A1.time AS DATE) = CAST(A2.time AS) AND A1.enter = 1 AND A2.enter = 0 AND A1.time < A2.time
             AND A2.time = (SELECT MIN(time) FROM audit A WHERE A.userId = A1.userId AND A1.time < A.time)`;
 
             let param = [];
             if (startTime != null){
-                sql += " AND date(A1.time) >= ?";
+                sql += " AND date(A1.time) >= ?"
                 param.push(startTime);
             }
             if (endTime != null){
-                sql += " AND date(A2.time) <= ?";
+                sql += " AND date(A2.time) <= ?"
                 param.push(endTime);
             }
-            sql += " GROUP BY A1.userId;"
+            sql += " GROUP BY A1.userId"
+            if (user != null){
+                sql += " HAVING A1.userId = ?";
+                param.push(user);
+            }
             this.db.all(sql, param, (err, rows) => {
                 if (err) {
                     reject(err);

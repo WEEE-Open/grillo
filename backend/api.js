@@ -128,6 +128,7 @@ router.post('/add_audit', async (req, res) => {
 /*
     Get all audits
 */
+// to delete ?
 router.get('/audits', async (req, res) => {
     try{
         const time = dayjs(req.body.time);
@@ -142,7 +143,20 @@ router.get('/audits', async (req, res) => {
 
 router.get('/get_audits', async (req, res) => {
     try{
-        let results = await db.getAudit();
+        const param = req.query;
+        let startTime = null;
+        let endTime = null;
+        let user = null    
+        if ('fromDate' in param) {
+            startTime = param['fromDate'];
+        }
+        if ('toDate' in param) {
+            endTime = param['toDate'];
+        }
+        if ('user' in param){
+            user = param['user']
+        }
+        let results = await db.getAudit(startTime, endTime, user);
         res.sendStatus(200);
         console.log(results);
     }
@@ -155,11 +169,25 @@ router.get('/get_audits', async (req, res) => {
 
 /*
     Get stat
-*/
 
+    The timeframe can be selected but only a single user
+*/
 router.get('/get_stats', async (req, res) => {
     try{
-        let results = await db.getStats();
+        const param = req.query;
+        let startTime = null;
+        let endTime = null;
+        let user = null    
+        if ('fromDate' in param) {
+            startTime = param['fromDate'];
+        }
+        if ('toDate' in param) {
+            endTime = param['toDate'];
+        }
+        if ('user' in param){
+            user = param['user']
+        }
+        let results = await db.getStats(startTime, endTime, user);
         res.sendStatus(200);
         console.log(results);
     }
