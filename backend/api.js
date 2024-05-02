@@ -41,18 +41,20 @@ router.get('/users/me', async (req, res) => {
     Create a booking
 */
 
-//not working atm
-router.post('/bookings', async (req, res) => {
+//how to pass values using a post not a get??
+router.get('/add_booking', async (req, res) => {
+    console.log(req.query.user);
     try{
-
-        const time = dayjs(req.body.time);
-        console.log(req.body)
-        if(!time.isValid() || time.isBefore(dayjs()) || time.isSame(dayjs())){
+        const time = req.query.time;
+        var parts = time.split('T');
+        var mydate = new Date(parts[0]);
+        const today = dayjs().toISOString();
+        if(mydate < today){
             res.status(400).json({error: "Invalid time"});
             return;
         }
 
-        await db.addBooking(req.user.id, time);
+        await db.addBooking(req.query.user , time);
         res.sendStatus(200);
     }
     catch (error){
@@ -64,7 +66,7 @@ router.post('/bookings', async (req, res) => {
 /*
     Get all bookings
 */
-router.get('/bookings', async (req, res) => {
+router.get('/get_bookings', async (req, res) => {
     try{
         const bookings = await db.getBookings(req.params.userId);
         res.json(bookings);
@@ -78,7 +80,7 @@ router.get('/bookings', async (req, res) => {
 /*
     Delete a booking
 */ 
-router.delete('/bookings', async (req, res) => {
+router.delete('/del_booking', async (req, res) => {
     try{
         const time = dayjs(req.body.time);
         await db.deleteBooking(req.user.id, time);
@@ -96,14 +98,14 @@ router.delete('/bookings', async (req, res) => {
 
 /*
     Create an audit
+    have to be tested
 */
 router.post('/add_audit', async (req, res) => {
-    try{
-        if(req.body.motivation.length > 100){
+    try{      
+        if(req.body.motivation != null && req.body.motivation.length > 100){
             res.status(400).json({error: "Invalid motivation"});
             return;
         }
-
         if(req.body.in === true){
             await db.addEntrance(req.user.id, dayjs());
             res.sendStatus(200);
@@ -128,18 +130,6 @@ router.post('/add_audit', async (req, res) => {
 /*
     Get all audits
 */
-// to delete ?
-router.get('/audits', async (req, res) => {
-    try{
-        const time = dayjs(req.body.time);
-        await db.deleteBooking(req.user.id, time);
-        res.sendStatus(200);
-    }
-    catch (error){
-        console.error(error);
-        res.status(503).json(error);
-    }
-});
 
 router.get('/get_audits', async (req, res) => {
     try{
@@ -166,11 +156,30 @@ router.get('/get_audits', async (req, res) => {
     }
 });
 
+/*
+    Edit audit ADMINS ONLY
+*/
+router.post('/edit_audit', async (req, res) => {
+    try{
+        let userId = 'UID1';
+        let time = '2023-11-21T16:30:08+00:00';
+        let newTime = '2023-11-21T16:00:08+00:00'
+        let newMotivation = 'qualcosa';
+        let results = await db.editAudit(userId, time, newTime, newMotivation);
+        res.sendStatus(200);
+        console.log(results);
+    }
+    catch (error){
+        console.error(error);
+        res.status(503).json(error);
+    }
+});
+
 
 /*
     Get stat
 
-    The timeframe can be selected but only a single user
+    The timeframe can be selected but the filter can be one only by a single user
 */
 router.get('/get_stats', async (req, res) => {
     try{
@@ -199,6 +208,7 @@ router.get('/get_stats', async (req, res) => {
 
 /*
     Delete an audit
+    ADMIN ONLY?
 */
 router.delete('/del_audit', async (req, res) => {
     try{

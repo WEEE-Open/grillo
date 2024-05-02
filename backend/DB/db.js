@@ -60,7 +60,7 @@ export class Database {
     // #endregion
 
     // #region user
-
+    // ADD THE ADMIN FIELD FOR THE USER
     getUser(userId) {
         return new Promise((resolve, reject) => {
             const sql = "SELECT * FROM user WHERE id=?;";
@@ -79,7 +79,7 @@ export class Database {
 
     // #region audit
 
-    deleteAudit(userId, time, enter, motivation) {
+    deleteAudit(userId, time) {
         return new Promise((resolve, reject) => {
             const sql = "DELETE FROM audit WHERE userId = ? AND time = ?;";
 
@@ -180,6 +180,24 @@ export class Database {
 
         });
     } 
+
+    editAudit(userId, time, newTime, newMotivation){
+        return new Promise((resolve, reject) => {
+            let sql = `UPDATE audit
+                    SET time = ?,
+                        motivation = ?
+                    WHERE userId = ? AND time = ?;`;
+
+            this.db.all(sql, [time, newMotivation, userId, newTime], (err, rows) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                resolve(rows);
+            });
+
+        });
+    }
 
     // #endregion
 
