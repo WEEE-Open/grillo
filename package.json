@@ -10,7 +10,7 @@
 		"backend"
 	],
 	"scripts": {
-		"createDB": "cd backend/DB && node ./createDB.js",
+		"createDB": "cd backend/DB && node ./createDB_pg.js",
 		"addJunkData": "cd backend/DB && node ./createDB.js -j",
 		"frontend:dev": "cd frontend && npm run dev",
 		"frontend:prod": "cd frontend && npm run build",
@@ -27,6 +27,7 @@
 	"dependencies": {
 		"body-parser": "^1.20.2",
 		"cors": "^2.8.5",
-		"dayjs": "^1.11.10"
+		"dayjs": "^1.11.10",
+		"pg": "^8.11.3"
 	}
 }

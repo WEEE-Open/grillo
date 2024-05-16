@@ -23,11 +23,14 @@ RUN npm install
 # Copy source code
 COPY . .
 
-RUN if [ "$ADDJUNKDATA" = "true" ]; \
-	then npm run addJunkData; \
-else \
-	npm run createDB; \
-fi
+RUN mkdir -p /docker-entrypoint-initdb.d
+COPY backend/DB/createTables.sql /docker-entrypoint-initdb.d/
+
+#RUN if [ "$ADDJUNKDATA" = "true" ]; \
+#	then npm run addJunkData; \
+#else \
+#	npm run createDB; \
+#fi
 
 
 RUN if [ "$DEVELOPMENT" != "true" ]; \

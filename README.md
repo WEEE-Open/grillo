@@ -17,7 +17,8 @@ Development mode runs the backend with nodemon, so that as soon as you save it r
 1. Clone the repo
 2. Create a `.env` file and enter `DEVELOPMENT=true`
 3. [Create database](#create-db-and-adding-junk-data) [temporary]
-4. Run `docker-compose up`
+4. Create folder in root path called `database`
+5. Run `docker-compose up`
 
 ### Create DB and adding junk data
 
