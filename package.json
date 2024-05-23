@@ -10,7 +10,7 @@
 		"backend"
 	],
 	"scripts": {
-		"createDB": "cd backend/DB && node ./createDB_pg.js",
+		"createDB": "cd backend/DB && node ./createDB.js",
 		"addJunkData": "cd backend/DB && node ./createDB.js -j",
 		"frontend:dev": "cd frontend && npm run dev",
 		"frontend:prod": "cd frontend && npm run build",

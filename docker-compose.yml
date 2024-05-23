@@ -3,6 +3,7 @@ services:
   server:
     build: 
       context: "."
+      dockerfile: "./docker/server/Dockerfile"
       args:
         DEVELOPMENT: ${DEVELOPMENT}
     volumes:
@@ -16,15 +17,14 @@ services:
       - "3000:3000"
       - "5173:5173"
   db:
-    image: postgres
+    build: 
+      context: "."
+      dockerfile: "./docker/db/Dockerfile"
     restart: always
     volumes:
       - type: bind
         source: ./database
         target: /var/lib/postgresql/data
-    environment:
-      POSTGRES_PASSWORD: WEEEOpen
-      POSTGRES_USER: grillo
   adminer:
     image: adminer
     restart: always
