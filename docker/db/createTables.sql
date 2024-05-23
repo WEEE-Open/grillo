@@ -58,3 +58,10 @@ CREATE TABLE IF NOT EXISTS "token" (
     admin BOOLEAN NOT NULL,
     description TEXT
 );
+
+CREATE TABLE IF NOT EXISTS "event" (
+    id VARCHAR(255) PRIMARY KEY NOT NULL,
+    startTime INTEGER NOT NULL,
+    endTime INTEGER,
+    description TEXT
+);
