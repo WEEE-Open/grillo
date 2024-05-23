@@ -1,4 +1,4 @@
-FROM postgres:9.3
+FROM postgres:16.3
 
 ENV POSTGRES_USER grillo
 ENV POSTGRES_PASSWORD WEEEOpen

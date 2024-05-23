@@ -1,30 +1,21 @@
-import sqlite3 from 'sqlite3'
-import { Booking } from '../models.js';
+import postgres from 'postgres';
+import { Booking } from './models.js';
 import dayjs from 'dayjs';
 
 export class Database {
-    constructor(path) {
-        this.path = path;
-        this.db = new sqlite3.Database(this.path, async (err) => { if (err) throw err; })
+    constructor(url) {
+        this.db = postgres(url); // see db structure at https://drawsql.app/teams/none-217/diagrams/grillo
     }
-
 
     // #region booking
 
-    addBooking(userId, time) {
-        return new Promise((resolve, reject) => {
-            const sql = "INSERT INTO booking (userId, time) VALUES (?, ?);";
-            this.db.run(sql, [userId, time], (err) => {
-                if (err) {
-                    reject(err);
-                    return;
-                }
-                resolve(null);
-            });
-        })
+    async addBooking(userId, startTime, endTime) {
+		return this.db`
+			INSERT INTO booking (userId, startTime, endTime) VALUES (${userId}, ${startTime}, ${endTime});
+		`
     }
 
-    getBookings(userId){
+    async getBookings(userId){
         return new Promise((resolve, reject) => {
             let params = [dayjs()];
             let sql = "SELECT u.id, b.time, u.hasKey FROM booking b, user u WHERE b.userId = u.id AND b.time > ?";
@@ -60,6 +51,16 @@ export class Database {
     // #endregion
 
     // #region user
+
+	addUserIfNotExists(userId) {
+		return this.db`
+			INSERT INTO "user" (id, seconds, inlab, lastupdate, lastseconds) VALUES (${userId}, 0, FALSE, 0, 0)
+			ON CONFLICT(id) DO NOTHING;
+		`  // some of this is temporary
+	}
+
+
+
     // ADD THE ADMIN FIELD FOR THE USER
     getUser(userId) {
         return new Promise((resolve, reject) => {

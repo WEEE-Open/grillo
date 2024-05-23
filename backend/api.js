@@ -20,7 +20,10 @@ router.use(express.json());
 
 
 
-router.get('/ping', (req, res) => {
+router.get('/ping', async (req, res) => {
+	let now = dayjs();
+	await db.addUserIfNotExists('UID1');
+	await db.addBooking('UID1', now.unix(), now.unix() + 3600);
     res.send('pong');
 });
 

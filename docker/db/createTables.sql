@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS "user" (
     id VARCHAR(255) PRIMARY KEY NOT NULL,    
     seconds INTEGER NOT NULL DEFAULT 0, 
     inlab BOOLEAN NOT NULL, 
-    lastUpdate TIMESTAMP NOT NULL, 
+    lastUpdate INTEGER NOT NULL, 
     lastSeconds INTEGER NOT NULL
 );
 
@@ -60,8 +60,9 @@ CREATE TABLE IF NOT EXISTS "token" (
 );
 
 CREATE TABLE IF NOT EXISTS "event" (
-    id VARCHAR(255) PRIMARY KEY NOT NULL,
+    id SERIAL PRIMARY KEY NOT NULL,
     startTime INTEGER NOT NULL,
     endTime INTEGER,
+	title TEXT NOT NULL,
     description TEXT
 );
