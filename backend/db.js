@@ -2,9 +2,16 @@ import postgres from 'postgres';
 import { Booking } from './models.js';
 import dayjs from 'dayjs';
 
+import Ldap from './ldap.js';
+
 export class Database {
-    constructor(url) {
-        this.db = postgres(url); // see db structure at https://drawsql.app/teams/none-217/diagrams/grillo
+    constructor(config) {
+        this.db = postgres(config.db); // see db structure at https://drawsql.app/teams/none-217/diagrams/grillo
+        this.ldap = new Ldap(config.ldap);
+    }
+
+    connect() {
+        return this.ldap.connect();
     }
 
     // #region booking

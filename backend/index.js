@@ -15,7 +15,7 @@ const argv = yargs(process.argv)
 import api from './api.js';
 import { Database } from './db.js';
 
-export const db = new Database(config.db);
+export const db = new Database(config);
 
 let app = express();
 app.use(express.json());
