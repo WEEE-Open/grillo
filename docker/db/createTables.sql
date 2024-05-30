@@ -1,9 +1,7 @@
 CREATE TABLE IF NOT EXISTS "user" (
     id VARCHAR(255) PRIMARY KEY NOT NULL,    
     seconds INTEGER NOT NULL DEFAULT 0, 
-    inlab BOOLEAN NOT NULL, 
-    lastUpdate INTEGER NOT NULL, 
-    lastSeconds INTEGER NOT NULL
+    inlab BOOLEAN NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS "location" (
@@ -40,13 +38,24 @@ CREATE TABLE IF NOT EXISTS "cookie" (
 
 CREATE TABLE IF NOT EXISTS "notification" (
     id SERIAL PRIMARY KEY, 
-    cookie VARCHAR(255) NOT NULL,
-    delivered BOOLEAN NOT NULL DEFAULT FALSE,
+    userId VARCHAR(255) NOT NULL,
     read BOOLEAN NOT NULL DEFAULT FALSE,
     time INTEGER NOT NULL,
     title TEXT NOT NULL,
     body TEXT,
+    FOREIGN KEY(userId) REFERENCES "user"(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS "notificationDelivery" (
+    cookie VARCHAR(255) NOT NULL PRIMARY KEY,
+    id INTEGER NOT NULL,
+    delivered BOOLEAN NOT NULL DEFAULT FALSE,
     FOREIGN KEY(cookie) REFERENCES "cookie"(cookie)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+    FOREIGN KEY(id) REFERENCES "notification"(id)
         ON DELETE CASCADE
         ON UPDATE CASCADE
 );

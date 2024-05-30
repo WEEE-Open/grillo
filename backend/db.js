@@ -15,40 +15,76 @@ export class Database {
     }
 
     // #region booking
-
+    /**
+     * 
+     * @param {string} userId 
+     * @param {number} startTime 
+     * @param {number=} endTime 
+     * @returns 
+     */
     async addBooking(userId, startTime, endTime) {
-        if (endTime == NaN){
+        if (endTime == null){
             return this.db.run`
 			    INSERT INTO booking (userId, startTime) 
                 VALUES (${userId}, ${startTime});
-		        `
+		        RETURNING *`
         }
 		return this.db.run`
 			INSERT INTO booking (userId, startTime, endTime) 
-            VALUES (${userId}, ${startTime}, ${endTime});
+            VALUES (${userId}, ${startTime}, ${endTime}) 
+            RETURNING *;
 		`
     }
 
+    /**
+     * 
+     * @param {number} startWeek 
+     * @param {number} endWeek 
+     * @param {string[]=} users 
+     * @returns 
+     */
     async getBookings(startWeek, endWeek, users){
+        if (users == null || users.length == 0){
+            return this.db.run`
+                SELECT userid, starttime, endtime
+                FROM booking
+                WHERE starttime>=${startWeek} && endtime<=${endWeek};`;
+        }
         return this.db.run`
                 SELECT userid, starttime, endtime
                 FROM booking
-                WHERE starttime>=${startWeek} && endtime<=${endWeek};
-        `
+                WHERE starttime>=${startWeek} && endtime<=${endWeek}
+                        userid IN ${ sql(users) };`;
     }
 
-    deleteBooking(userId, time) {
-        return new Promise((resolve, reject) => {
-            const sql = "DELETE FROM booking WHERE userId = ? AND time = ?;";
-            // add error or warning in case the values are not in the db
-            this.db.run(sql, [userId, time], (err) => {
-                if (err) {
-                    reject(err);
-                    return;
-                }
-                resolve(null);
-            });
-        })
+    async getBooking(id){
+        return this.db.run`
+                SELECT *
+                FROM booking
+                WHERE id = ${ id };`;
+    }
+
+    /**
+     * 
+     * @param {number} id 
+     * @returns 
+     */
+    async deleteBooking(id) {
+        return this.db.run`
+                DELETE FROM booking
+                WHERE id = ${ id };`;
+    }
+
+    /**
+     * 
+     * @param {number} id
+     * @param {number} startTime 
+     * @param {number=} endTime 
+     * @returns 
+     */
+    async editBooking(id, startTime, endTime) {
+        return this.db.run`
+                UPDATE booking SET startTime = ${startTime}, endTime = ${endTime} WHERE id = ${id} RETURNING *;`;
     }
 
     // #endregion

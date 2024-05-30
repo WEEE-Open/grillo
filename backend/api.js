@@ -47,13 +47,10 @@ router.post('/lab/in');
 router.post('/lab/out'); 
 router.post('/lab/ring');
 
-router.get('/bookings');
-// week, year
-
+// router.get('/bookings'); done
 // router.post('/bookings/new'); done
-
-router.post('/bookings/:id');   //to edit a booking
-router.delete('/bookings/:id');
+// router.post('/bookings/:id');   //to edit a booking
+// router.delete('/bookings/:id');
 
 router.get('/audits');
 
@@ -81,62 +78,81 @@ router.delete('/events/:id');
     Create a booking
 */
 router.post('/bookings/new', async (req, res) => {
-    try{
-        var inTime = parseInt(req.body.startTime);
-        var endTime = parseInt(req.body.endTime);
+    var inTime = parseInt(req.body.startTime);
+    var endTime = parseInt(req.body.endTime);
 
-        if(inTime == NaN || dayjs.unix(inTime).isAfter(dayjs())){
-            res.status(400).json({error: "Invalid time"});
-            return;
-        }
-        await db.addBooking(req.body.user, inTime, endTime);
-        res.sendStatus(200);
+    if(inTime == NaN || dayjs.unix(inTime).isBefore(dayjs())){
+        res.status(400).json({error: "Invalid time"});
+        return;
     }
-    catch (error){
-        console.error(error);
-        res.status(503).json(error);
+    if(endTime != NaN && dayjs.unix(inTime).isAfter(dayjs.unix(endTime))){
+        res.status(400).json({error: "End time is before start time"});
+        return;
     }
+    if (endTime == NaN) endTime=null;
+    let booking = await db.addBooking(req.body.user, inTime, endTime);
+    res.status(200).json(booking);
 });
 
 /*
     Get all bookings
 */
-router.get('/get_bookings', async (req, res) => {
-    try{
-        let week = parseInt(req.query.week);
-        let year = parseInt(req.query.year);
-        let users = req.query.user.split(",");
-        if (week == NaN){
-            res.status(400).json({error: "Invalid time"});
-            return;
-        }
-        let startWeek = dayjs().year(year).isoWeek(week).startOf('isoWeek');
-        let endWeek = dayjs().year(year).isoWeek(week).endOf('isoWeek');
+router.get('/bookings', async (req, res) => {
+    let week = parseInt(req.query.week);
+    let year = parseInt(req.query.year);
+    let users = req.query.user.split(",");
+    let date = dayjs();
+    if (week != NaN && year != NaN){
+        date = date.year(year).isoWeek(week);
+    } else if (week != NaN || year != NaN) {
+        res.status(400).send("missing week/year");
+        return;
+    }
+    let startWeek = date.startOf('isoWeek');
+    let endWeek = date.endOf('isoWeek');
 
-        const bookings = await db.getBookings(startWeek, endWeek, users);
-        res.json(bookings);
-    }
-    catch (error){
-        console.error(error);
-        res.status(503).json(error);
-    }
+    const bookings = await db.getBookings(startWeek, endWeek, users);
+    res.json(bookings);
 });
 
 
-// /*
-//     Delete a booking
-// */ 
-// router.delete('/del_booking', async (req, res) => {
-//     try{
-//         const time = dayjs(req.body.time);
-//         await db.deleteBooking(req.user.id, time);
-//         res.sendStatus(200);
-//     }
-//     catch (error){
-//         console.error(error);
-//         res.status(503).json(error);
-//     }
-// });
+/*
+    Delete a booking
+*/ 
+router.delete('/bookings/:id', async (req, res) => {
+    let booking = db.getBooking(req.params.id);
+    if (booking.userId != req.user.id && !req.user.isAdmin){
+        res.status(403).send("Not authorized");
+        return;
+    }
+    await db.deleteBooking(req.params.id);
+    res.status(206).send();
+});
+
+/*
+    Edit a booking
+*/ 
+router.post('/bookings/:id', async (req, res) => {
+    let booking = db.getBooking(req.params.id);
+    if (booking.userId != req.user.id && !req.user.isAdmin){
+        res.status(403).send("Not authorized");
+        return;
+    }
+    var inTime = parseInt(req.body.startTime);
+    var endTime = parseInt(req.body.endTime);
+
+    if(inTime == NaN || dayjs.unix(inTime).isBefore(dayjs())){
+        res.status(400).json({error: "Invalid time"});
+        return;
+    }
+    if(endTime != NaN && dayjs.unix(inTime).isAfter(dayjs.unix(endTime))){
+        res.status(400).json({error: "End time is before start time"});
+        return;
+    }
+    if (endTime == NaN) endTime = null;
+    await db.editBooking(booking.id, inTime, endTime);
+    res.sendStatus(200).send();
+});
 
 // // #endregion
 
