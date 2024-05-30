@@ -17,28 +17,24 @@ export class Database {
     // #region booking
 
     async addBooking(userId, startTime, endTime) {
-		return this.db`
-			INSERT INTO booking (userId, startTime, endTime) VALUES (${userId}, ${startTime}, ${endTime});
+        if (endTime == NaN){
+            return this.db.run`
+			    INSERT INTO booking (userId, startTime) 
+                VALUES (${userId}, ${startTime});
+		        `
+        }
+		return this.db.run`
+			INSERT INTO booking (userId, startTime, endTime) 
+            VALUES (${userId}, ${startTime}, ${endTime});
 		`
     }
 
-    async getBookings(userId){
-        return new Promise((resolve, reject) => {
-            let params = [dayjs()];
-            let sql = "SELECT u.id, b.time, u.hasKey FROM booking b, user u WHERE b.userId = u.id AND b.time > ?";
-            if(userId){
-                params.push(userId);
-                sql = sql.concat(' AND userId = ?')
-            }
-            this.db.all(sql, params, (err, rows) => {
-                if (err) {
-                    reject(err);
-                    return;
-                }
-                const bookings = rows.map(r => new Booking(r.userId, r.time, r.hasKey));
-                resolve(bookings);
-            });
-        })
+    async getBookings(startWeek, endWeek, users){
+        return this.db.run`
+                SELECT userid, starttime, endtime
+                FROM booking
+                WHERE starttime>=${startWeek} && endtime<=${endWeek};
+        `
     }
 
     deleteBooking(userId, time) {

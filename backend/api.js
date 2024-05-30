@@ -1,5 +1,5 @@
 import config from './config.js';
-import express from 'express';
+import express, { query } from 'express';
 import { db } from './index.js';
 import dayjs from 'dayjs';
 //import cors from  'cors';
@@ -50,7 +50,7 @@ router.post('/lab/ring');
 router.get('/bookings');
 // week, year
 
-router.post('/bookings/new');
+// router.post('/bookings/new'); done
 
 router.post('/bookings/:id');   //to edit a booking
 router.delete('/bookings/:id');
@@ -80,41 +80,48 @@ router.delete('/events/:id');
 /*
     Create a booking
 */
-// //how to pass values using a post not a get??
-// router.get('/add_booking', async (req, res) => {
-//     console.log(req.query.user);
-//     try{
-//         const time = req.query.time;
-//         var parts = time.split('T');
-//         var mydate = new Date(parts[0]);
-//         const today = dayjs().toISOString();
-//         if(mydate < today){
-//             res.status(400).json({error: "Invalid time"});
-//             return;
-//         }
+router.post('/bookings/new', async (req, res) => {
+    try{
+        var inTime = parseInt(req.body.startTime);
+        var endTime = parseInt(req.body.endTime);
 
-//         await db.addBooking(req.query.user , time);
-//         res.sendStatus(200);
-//     }
-//     catch (error){
-//         console.error(error);
-//         res.status(503).json(error);
-//     }
-// });
+        if(inTime == NaN || dayjs.unix(inTime).isAfter(dayjs())){
+            res.status(400).json({error: "Invalid time"});
+            return;
+        }
+        await db.addBooking(req.body.user, inTime, endTime);
+        res.sendStatus(200);
+    }
+    catch (error){
+        console.error(error);
+        res.status(503).json(error);
+    }
+});
 
-// /*
-//     Get all bookings
-// */
-// router.get('/get_bookings', async (req, res) => {
-//     try{
-//         const bookings = await db.getBookings(req.params.userId);
-//         res.json(bookings);
-//     }
-//     catch (error){
-//         console.error(error);
-//         res.status(503).json(error);
-//     }
-// });
+/*
+    Get all bookings
+*/
+router.get('/get_bookings', async (req, res) => {
+    try{
+        let week = parseInt(req.query.week);
+        let year = parseInt(req.query.year);
+        let users = req.query.user.split(",");
+        if (week == NaN){
+            res.status(400).json({error: "Invalid time"});
+            return;
+        }
+        let startWeek = dayjs().year(year).isoWeek(week).startOf('isoWeek');
+        let endWeek = dayjs().year(year).isoWeek(week).endOf('isoWeek');
+
+        const bookings = await db.getBookings(startWeek, endWeek, users);
+        res.json(bookings);
+    }
+    catch (error){
+        console.error(error);
+        res.status(503).json(error);
+    }
+});
+
 
 // /*
 //     Delete a booking
