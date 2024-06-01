@@ -1,14 +1,19 @@
 export class User{
-    constructor(id, printableName, seconds, inlab, hasKey, groups){
-        this.id = id;
-        this.printableName = printableName;
-        this.seconds = seconds;
-        this.inlab = inlab;
-        this.hasKey = hasKey;
-        this.groups = groups;
+    constructor(opt){
+        this.id = opt.id;
+        this.name = opt.name;
+        this.surname = opt.surname;
+        this.printableName = opt.printableName;
+        this.seconds = opt.seconds;
+        this.inlab = opt.inlab;
+        this.hasKey = opt.hasKey;
+        this.groups = opt.groups;
     }
 
     get isAdmin(){
+        if (this.groups === undefined){
+            return false;
+        }
         return this.groups.includes('soviet');
     }
 }

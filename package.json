@@ -22,11 +22,5 @@
 	},
 	"author": "WEEE Open",
 	"license": "MIT",
-	"dependencies": {
-		"body-parser": "^1.20.2",
-		"cors": "^2.8.5",
-		"dayjs": "^1.11.10",
-		"ldapjs-client": "^0.1.2",
-		"pg": "^8.11.3"
-	}
+	"dependencies": {}
 }

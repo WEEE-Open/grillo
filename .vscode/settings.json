@@ -1,0 +1,26 @@
+{
+    "editor.wordWrap": "on",
+    "editor.tabSize": 4,
+    "[javascript]": {
+        "editor.defaultFormatter": "vscode.typescript-language-features"
+    },
+    "workbench.colorCustomizations": {
+        "activityBar.foreground": "#007a2e",
+        "activityBarBadge.background": "#007a2e",
+        "activityBarBadge.foreground": "#ffffff",
+        "list.activeSelectionBackground": "#007a2e",
+        "list.inactiveSelectionBackground": "#005621",
+        "list.highlightForeground": "#007a2e",
+        "scrollbar.shadow": "#007a2e",
+        "editorSuggestWidget.highlightForeground": "#007a2e",
+        "textLink.foreground": "#007a2e",
+        "progressBar.background": "#007a2e",
+        "pickerGroup.foreground": "#007a2e",
+        "tab.activeBorder": "#007a2e",
+        "tab.activeBorderTop": "#62ff9e",
+        "notificationLink.foreground": "#007a2e",
+        "editorWidget.border": "#007a2e",
+        "editorWidget.resizeBorder": "#007a2e",
+        "editorWidget.foreground": "#007a2e"
+    }
+}
