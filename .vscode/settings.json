@@ -8,7 +8,7 @@
         "activityBar.foreground": "#007a2e",
         "activityBarBadge.background": "#007a2e",
         "activityBarBadge.foreground": "#ffffff",
-        "list.activeSelectionBackground": "#007a2e",
+        "list.activeSelectionBackground": "#003313",
         "list.inactiveSelectionBackground": "#005621",
         "list.highlightForeground": "#007a2e",
         "scrollbar.shadow": "#007a2e",

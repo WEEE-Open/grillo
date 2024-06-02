@@ -2,18 +2,11 @@ import config from './config.js';
 import express, { query } from 'express';
 import { db } from './index.js';
 import dayjs from 'dayjs';
-//import cors from  'cors';
 import bodyParser from 'body-parser';
 
 
 const router = express.Router();
 
-const corsOptions = {
-    origin: "http://localhost:5173",
-    optionsSuccessStatus: 200,
-    credentials: true
-}
-//router.use(cors(corsOptions)); 
 router.use(bodyParser.json());
 router.use(express.json());
 
@@ -21,10 +14,12 @@ router.use(express.json());
 
 
 router.get('/ping', async (req, res) => {
-	let now = dayjs();
-	await db.addUserIfNotExists('UID1');
-	await db.addBooking('UID1', now.unix(), now.unix() + 3600);
+	/*let now = dayjs();
+	
+	await db.addBooking('UID1', now.unix(), now.unix() + 3600);*/
+    //await db.addUserIfNotExists('UID1');
     res.send('pong');
+    //res.json(await db.getUsers());
 });
 
 router.get('/user', async (req, res) => {

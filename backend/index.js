@@ -17,6 +17,7 @@ import api from "./api.js";
 import { Database } from "./db.js";
 
 export const db = new Database(config);
+db.connect();
 
 let app = express();
 app.use(express.json());

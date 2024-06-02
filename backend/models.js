@@ -1,6 +1,7 @@
 export class User{
     constructor(opt){
         this.id = opt.id;
+        this.username = opt.username;
         this.name = opt.name;
         this.surname = opt.surname;
         this.printableName = opt.printableName;

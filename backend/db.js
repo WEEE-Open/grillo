@@ -8,10 +8,24 @@ export class Database {
     constructor(config) {
         this.db = postgres(config.db); // see db structure at https://drawsql.app/teams/none-217/diagrams/grillo
         this.ldap = new Ldap(config.ldap);
+        this.ldap.on('usersUpdate', this.updateDatabaseUsersTable.bind(this));
     }
 
     connect() {
         return this.ldap.connect();
+    }
+    
+    async updateDatabaseUsersTable(users) {
+        let oldUsers = (await this.getUsers()).map(user => user.id);
+        let newUsers = users.map(user => user.id);
+        let usersToAdd = newUsers.filter(user => !oldUsers.includes(user));
+        let usersToDelete = oldUsers.filter(user => !newUsers.includes(user));
+        for (let user of usersToAdd) {
+            await this.addUserIfNotExists(user);
+        }
+        for (let user of usersToDelete) {
+            await this.deleteUser(user);
+        }
     }
 
     // #region booking
@@ -93,26 +107,28 @@ export class Database {
 
 	addUserIfNotExists(userId) {
 		return this.db`
-			INSERT INTO "user" (id, seconds, inlab, lastupdate, lastseconds) VALUES (${userId}, 0, FALSE, 0, 0)
+			INSERT INTO "user" (id, seconds, inlab) VALUES (${userId}, 0, FALSE)
 			ON CONFLICT(id) DO NOTHING;
-		`  // some of this is temporary
+		`
 	}
 
+    getUsers() {
+        return this.db`
+            SELECT * FROM "user";
+        `
+    }
 
+    deleteUser(userId) {
+        return this.db`
+            DELETE FROM "user" WHERE id = ${userId};
+        `
+    }
 
-    // ADD THE ADMIN FIELD FOR THE USER
-    getUser(userId) {
-        return new Promise((resolve, reject) => {
-            const sql = "SELECT * FROM user WHERE id=?;";
-            this.db.get(sql, [userId], (err, row) => {
-                if (err) {
-                    reject(err);
-                    return;
-                }
-                console.log(row)
-                resolve(new User(row.id, row.seconds, row.inlab, row.lastUpdate, row.lastSeconds, row.hashKey));
-            });
-        });
+    generateCookieForUser(userId, description) {
+        let cookie = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        return this.db`
+            INSERT INTO cookie (cookie, userId, description) VALUES (${cookies}, ${userId}, ${description});
+        ` // todo: check for collisions
     }
 
     // #endregion
