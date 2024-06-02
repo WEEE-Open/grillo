@@ -107,11 +107,11 @@ export default class Ldap extends EventEmitter {
         this.emit('usersUpdate', this.users);
     }
 
-    async getAllUsers() {
+    async getUsers() {
         return this.users;
     }
 
-    async getUser(uid) {
-        return this.users.find(user => user.uid === uid);
+    async getUser(id) {
+        return this.users.find(user => user.id === id);
     }
 }

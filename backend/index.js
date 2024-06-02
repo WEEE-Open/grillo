@@ -8,7 +8,7 @@ export const argv = yargs(process.argv)
 		alias: "p",
 		description: "Run in production mode",
 		type: "boolean",
-		default: true,
+		default: false,
 	})
 	.help()
 	.alias("help", "h").argv;

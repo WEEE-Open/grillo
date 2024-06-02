@@ -1,7 +1,6 @@
-import { argv } from "./index.js";
-
 const config = {
 	testMode: false, // will bypass login and show you a menu to select a user
+	ssoRedirect: "https://sso.example.com/login?redirect=grillo.example.com/login",
 	port: 3000,
 	db: "postgres://grillo:WEEEOpen@db/grillo", // postgres://username:password@host:port/database
 	ldap: {

@@ -1,4 +1,5 @@
 import postgres from 'postgres';
+import bcrypt from 'bcrypt';
 import { Booking } from './models.js';
 import dayjs from 'dayjs';
 
@@ -6,6 +7,7 @@ import Ldap from './ldap.js';
 
 export class Database {
     constructor(config) {
+		this.apiKeySaltRounds = config.apiKeySaltRounds;
         this.db = postgres(config.db); // see db structure at https://drawsql.app/teams/none-217/diagrams/grillo
         this.ldap = new Ldap(config.ldap);
         this.ldap.on('usersUpdate', this.updateDatabaseUsersTable.bind(this));
@@ -112,11 +114,41 @@ export class Database {
 		`
 	}
 
-    getUsers() {
-        return this.db`
+    async getUsers() {
+        let dbData = await this.db`
             SELECT * FROM "user";
-        `
+        `;
+		let ldapData = await this.ldap.getUsers();
+		return dbData.map(dbUser => {
+			let ldapUser = ldapData.find(ldapUser => ldapUser.id == dbUser.id);
+			return {
+				...ldapUser,
+				id: dbUser.id,
+				seconds: dbUser.seconds,
+				inlab: dbUser.inlab,
+			};
+		});
     }
+
+	async getUser(userId) {
+		let dbData = await this.db`
+			SELECT * FROM "user" WHERE id = ${userId};
+		`;
+		if (dbData.length == 0) {
+			return null;
+		}
+		dbData = dbData[0];
+		let ldapData = await this.ldap.getUser(dbData.id);
+		if (ldapData == null) {
+			return null;
+		}
+		return {
+			...ldapData,
+			id: dbData.id,
+			seconds: dbData.seconds,
+			inlab: dbData.inlab,
+		};
+	}
 
     deleteUser(userId) {
         return this.db`
@@ -124,14 +156,101 @@ export class Database {
         `
     }
 
-    generateCookieForUser(userId, description) {
-        let cookie = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-        return this.db`
-            INSERT INTO cookie (cookie, userId, description) VALUES (${cookies}, ${userId}, ${description});
-        ` // todo: check for collisions
+    async generateCookieForUser(userId, description) {
+		while (true) {
+			let cookie = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+			try {
+				await this.db`
+					INSERT INTO cookie (cookie, userId, description) VALUES (${cookie}, ${userId}, ${description});
+				`;
+				return cookie;
+			} catch (e) {
+				if (e.code != '23505') {
+					throw e;
+				}
+			}
+		}
     }
 
+	async getUserByCookie(cookie) {
+		let user = await this.db`
+			SELECT userId FROM cookie WHERE cookie = ${cookie};
+		`;
+		if (user.length == 0) {
+			return null;
+		}
+		return await this.getUser(user[0].userid);
+	}
+
+	deleteCookie(cookie) {
+		return this.db`
+			DELETE FROM cookie WHERE cookie = ${cookie};
+		`;
+	}
+
     // #endregion
+
+	// #region api token
+
+	async getTokens() {
+		return this.db`
+			SELECT * FROM "token";
+		`;
+	}
+
+	async getToken(id) {
+		let dbData = await this.db`
+			SELECT * FROM "token" WHERE id = ${id};
+		`;
+		if (dbData.length == 0) {
+			return null;
+		}
+		dbData = dbData[0];
+	}
+
+	async validateApiToken(token) {
+		let [id, hash] = token.split(':');
+		if (!id || !hash) {
+			return null;
+		}
+		let dbData = await this.getToken(id);
+		if (dbData == undefined || !await bcrypt.compare(hash, dbData.hash)) {
+			return null;
+		}
+		return {
+			id: dbData.id,
+			isReadOnly: dbData.readonly,
+			isAdmin: dbData.isadmin
+		};
+	}
+
+	async deleteToken(id) {
+		return this.db`
+			DELETE FROM "token" WHERE id = ${id};
+		`;
+	}
+
+	async generateToken(readOnly, isAdmin, description) {
+		while (true) {
+			let token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+			let password = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+			let hash = await bcrypt.hash(password, this.apiKeySaltRounds);
+			try {
+				await this.db`
+					INSERT INTO "token" (id, hash, readonly, isAdmin, description) VALUES (${token}, ${hash}, ${readOnly}, ${isAdmin}, ${description});
+				`;
+				return { token, password, fullString: `${token}:${password}` };
+			} catch (e) {
+				if (e.code != '23505') {
+					throw e;
+				}
+			}
+		}
+	}
+
+
+
+	// #endregion
 
     // #region audit
 

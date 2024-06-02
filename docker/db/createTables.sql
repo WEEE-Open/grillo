@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS "notificationDelivery" (
     delivered BOOLEAN NOT NULL DEFAULT FALSE,
     FOREIGN KEY(cookie) REFERENCES "cookie"(cookie)
         ON DELETE CASCADE
-        ON UPDATE CASCADE
+        ON UPDATE CASCADE,
     FOREIGN KEY(id) REFERENCES "notification"(id)
         ON DELETE CASCADE
         ON UPDATE CASCADE

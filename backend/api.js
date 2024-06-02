@@ -2,39 +2,132 @@ import config from './config.js';
 import express, { query } from 'express';
 import { db } from './index.js';
 import dayjs from 'dayjs';
-import bodyParser from 'body-parser';
+import cookieParser from 'cookie-parser';
 
 
 const router = express.Router();
 
-router.use(bodyParser.json());
+router.use(cookieParser());
 router.use(express.json());
 
 
-
+router.use(async (req, res, next) => {
+	if (req.cookies && req.cookies.session) {
+		let session = req.cookies.session;
+		let user = await db.getUserByCookie(session);
+		console.log(user);
+		if (user) {
+			req.user = user;
+		}
+		req.session = {
+			type: 'user',
+			id: user.id,
+			isReadoOnly: false,
+			isAdmin: user.isAdmin
+		};
+	}
+	if (!req.user && req.get('Authorization') != undefined) {
+		let [type, token] = req.get('Authorization').split(' ')[1];
+		if (type != 'Bearer') { // this is in preparation for future in case we want to move to jwt or something else
+			res.status(400).send('Invalid Authorization header');
+			return;
+		}
+		let apiPerm = await db.validateApiToken(token);
+		if (apiPerm) {
+			req.session = {
+				type: 'api',
+				id: apiPerm.id,
+				isReadOnly: apiPerm.isReadOnly,
+				isAdmin: apiPerm.isAdmin
+			};
+		}
+	}
+	next();
+});
 
 router.get('/ping', async (req, res) => {
-	/*let now = dayjs();
-	
-	await db.addBooking('UID1', now.unix(), now.unix() + 3600);*/
-    //await db.addUserIfNotExists('UID1');
     res.send('pong');
-    //res.json(await db.getUsers());
+});
+
+if (config.testMode) {
+	router.get('/user/session', async (req, res) => {
+		if (req.query.uid) {
+			let user = await db.getUser(req.query.uid);
+			console.log(user);
+			if (user) {
+				let cookie = await db.generateCookieForUser(user.id, `${req.ip} - ${req.get('User-Agent')}`);
+				res.cookie('session', cookie);
+				res.redirect('/api/v1/user/session'); // prevent reloading from generating a new cookie
+				return;
+			}
+		}
+		let page = `
+		<!DOCTYPE html>
+		<html>
+		<head>
+			<title>Test mode</title>
+		</head>
+		<body>
+			${(req.user) ? `<h2>Already authenticated as ${req.user.name}</h2>` : ''}
+			<h2>Select a user to switch account</h2>
+			<ul>`;
+		let users = await db.getUsers();
+		for (let user of users) {
+			page += `<li><a href="?uid=${user.id}">${user.name}</a></li>`;
+		}
+		page += `
+			</ul>
+		</body>
+		</html>`;
+		res.send(page);
+	});
+} else {
+	router.get('/user/session', async (req, res) => {
+		if (req.session) {
+			res.status(400).send('Already authenticated');
+			return;
+		}
+		if (!req.query.code) {
+			res.redirect(config.ssoRedirect);
+			return;
+		}
+		// TODO: validate sso and return a session cookie
+		res.sendStatus(501); // temp
+	});
+}
+
+
+
+
+
+// ! anything below here requires authentication
+
+router.use(async (req, res, next) => {
+	if (!req.session) {
+		res.status(401).send('Unauthorized');
+		return;
+	}
+	next();
 });
 
 router.get('/user', async (req, res) => {
-    try{
-        const user = await db.getUser(req.user.id);
-        res.json(user);
-    }
-    catch (error){
-        console.error(error);
-        res.status(503).json(error);
-    }
+    res.json(req.user);
 });
 
-router.delete('/user/session');
-router.get('/user/session');
+router.delete('/user/session', async (req, res) => {
+	if (req.session.type == 'api') {
+		if (req.session.isAdmin) {
+			await db.deleteApiKey(req.session.id);
+			res.sendStatus(204);
+			return;
+		}
+		res.status(403).send('Forbidden');
+		return;
+	}
+	await db.deleteCookie(req.cookies.session);
+	res.clearCookie('session');
+	res.sendStatus(204);
+});
 
 router.get('/lab/info');
 // audit
@@ -121,7 +214,7 @@ router.delete('/bookings/:id', async (req, res) => {
         return;
     }
     await db.deleteBooking(req.params.id);
-    res.status(206).send();
+    res.status(204).send();
 });
 
 /*
