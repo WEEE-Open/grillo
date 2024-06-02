@@ -205,7 +205,7 @@ export class Database {
 		if (dbData.length == 0) {
 			return null;
 		}
-		dbData = dbData[0];
+		return dbData[0];
 	}
 
 	async validateApiToken(token) {
@@ -237,7 +237,7 @@ export class Database {
 			let hash = await bcrypt.hash(password, this.apiKeySaltRounds);
 			try {
 				await this.db`
-					INSERT INTO "token" (id, hash, readonly, isAdmin, description) VALUES (${token}, ${hash}, ${readOnly}, ${isAdmin}, ${description});
+					INSERT INTO "token" (id, hash, readonly, admin, description) VALUES (${token}, ${hash}, ${readOnly}, ${isAdmin}, ${description});
 				`;
 				return { token, password, fullString: `${token}:${password}` };
 			} catch (e) {

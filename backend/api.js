@@ -1,6 +1,6 @@
 import config from './config.js';
 import express, { query } from 'express';
-import { db } from './index.js';
+import { db, io } from './index.js';
 import dayjs from 'dayjs';
 import cookieParser from 'cookie-parser';
 
@@ -8,23 +8,21 @@ import cookieParser from 'cookie-parser';
 const router = express.Router();
 
 router.use(cookieParser());
-router.use(express.json());
 
 
 router.use(async (req, res, next) => {
 	if (req.cookies && req.cookies.session) {
 		let session = req.cookies.session;
 		let user = await db.getUserByCookie(session);
-		console.log(user);
 		if (user) {
 			req.user = user;
+			req.session = {
+				type: 'user',
+				id: user.id,
+				isReadoOnly: false,
+				isAdmin: user.isAdmin
+			};
 		}
-		req.session = {
-			type: 'user',
-			id: user.id,
-			isReadoOnly: false,
-			isAdmin: user.isAdmin
-		};
 	}
 	if (!req.user && req.get('Authorization') != undefined) {
 		let [type, token] = req.get('Authorization').split(' ')[1];
@@ -47,13 +45,13 @@ router.use(async (req, res, next) => {
 
 router.get('/ping', async (req, res) => {
     res.send('pong');
+	//res.json(await db.generateToken(true, false, "weeetofono"));
 });
 
 if (config.testMode) {
 	router.get('/user/session', async (req, res) => {
 		if (req.query.uid) {
 			let user = await db.getUser(req.query.uid);
-			console.log(user);
 			if (user) {
 				let cookie = await db.generateCookieForUser(user.id, `${req.ip} - ${req.get('User-Agent')}`);
 				res.cookie('session', cookie);
@@ -96,10 +94,6 @@ if (config.testMode) {
 	});
 }
 
-
-
-
-
 // ! anything below here requires authentication
 
 router.use(async (req, res, next) => {
@@ -133,7 +127,19 @@ router.get('/lab/info');
 // audit
 router.post('/lab/in');
 router.post('/lab/out'); 
-router.post('/lab/ring');
+router.post('/lab/ring', async (req, res) => {
+	if (req.session.isReadOnly) {
+		res.status(403).send('Forbidden');
+		return;
+	}
+	try {
+		await io.timeout(10000).emitWithAck('ring'); // in the future perhaps we can add a parameter to specify which bell to ring
+		res.sendStatus(204);
+	} catch (error) {
+		res.status(503).send('No response from WEEETofono');
+		return;
+	}
+});
 
 // router.get('/bookings'); done
 // router.post('/bookings/new'); done

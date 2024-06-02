@@ -41,6 +41,16 @@ Production mode will automatically compile the frontend, and start up the backen
 4. Create an empty folder in the root path called `database`
 5. Run `docker-compose up`
 
+## Configuring the WEEETofono
+
+The WEEETofono is a daemon that can run on any machine that is always on and connected to the internet. It is used to send out notifications to people in the lab when someone needs to be let in. The code is in the `weeetofono` folder. To install:
+
+1. Make sure you have `node.js` and `ffmpeg` installed, and make sure that the `ffplay` command is available in the terminal
+2. Run `npm i` in the `weeetofono` folder
+3. Copy the `config.example.js` as `config.js` and configure the settings and add the audio file to play, the api key can be generated in the web ui of the grillo
+4. Run `npm start` to start the daemon
+5. It is recommended to use a process manager like `pm2` to keep the daemon running, you can install it with `npm i -g pm2` and then run `pm2 start index.js --name weeetofono` and then `pm2 save` to make sure it starts on boot and `pm2 startup` to make sure it starts on boot
+
 
 For more options look into the `package.json` file
 

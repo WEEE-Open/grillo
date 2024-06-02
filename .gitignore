@@ -1,5 +1,7 @@
 # Stuff that should not be leaked
 backend/config.js
+weeetofono/config.js
+weeetofono/weeedong.wav
 backend/test.js
 database
 

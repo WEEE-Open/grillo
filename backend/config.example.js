@@ -11,7 +11,8 @@ const config = {
 		password: 'password',
 		userDn: 'ou=People,dc=example,dc=test',
 		updateCron: "0 * * * * *",
-	}
+	},
+	apiKeySaltRounds: 10,
 };
 
 
