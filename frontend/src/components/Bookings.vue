@@ -42,5 +42,6 @@ export default {
 
 <template>
     There are {{ nextBookings().length }} students that are going to lab:<br/>
+    <br/>
     <span v-for="b in nextBookings()">- {{ b.user+' '+compare(b.time)+' at '+printTime(b.time) }}<br/></span>
 </template>
