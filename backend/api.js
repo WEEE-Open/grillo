@@ -248,9 +248,95 @@ router.post('/bookings/:id', async (req, res) => {
     res.sendStatus(200).send();
 });
 
-// // #endregion
 
-// // #region audits
+// region audits
+
+/**
+ * 	Create entrace
+ * 
+ * Body contains:
+ * (int) startTime
+ * (string) locationId
+ */
+router.post('/audits/in', async (req, res) => {
+    var inTime = parseInt(req.body.startTime);
+	var idLocation = getLocation(id);
+	if (!idLocation){
+		res.status(400).json({error: "Invalid location"});
+        return;
+	}
+    if(inTime == NaN){
+        res.status(400).json({error: "Invalid time"});
+        return;
+    }
+    let audit = await addEntrance(req.user.id, inTime, req.body.idLocation, req.user.isAdmin);
+    res.status(200).json(audit);
+});
+
+/**
+ * Create exit
+ * 
+ * Body contains:
+ * (int) outTime
+ * (string) motivation mandatory
+ */
+router.post('/audits/out', async(req, res) => {
+	var outTime = parseInt(req.body.outTime);
+
+    if(outTime == NaN){
+        res.status(400).json({error: "Invalid time"});
+        return;
+    }
+    let audit = await addExit(req.user.id, outTime, req.user.isAdmin, req.body.motivation);
+    res.status(200).json(audit);
+})
+
+/**
+ * Edit audit
+ * 
+ * Body can contain:
+ * {number=} startTime 
+ * {number=} endTime
+ * {string=} motivation
+ * {boolean=} approved
+ * {string=} location 
+ */
+router.patch('/audits/:id', async(req, res) => {
+	let auditId = req.params.id;
+	let audit = getAudit(auditId);
+	if (!audit){
+		res.status(400).json({error: "Invalid audit id"});
+        return;
+	}
+	if (!req.user.isAdmin){
+		res.status(400).json({error: "Operation not allowed"});
+        return;
+	}
+	let params = req.body;
+	let edAudit = editAudit(auditId, params);
+	res.status(200).json(edAudit);
+})
+
+/**
+ * Show audits
+ * 
+ * {number=} start
+ * {number=} end
+ * {sring[]=} users
+ */
+router.get('/audits', async (req, res) => {
+    let start = parseInt(req.query.start);
+    let end = parseInt(req.query.end);
+    let users = req.query.user.split(",");
+
+
+    const audits = getAudits(start, end, users);
+    res.json(audits);
+});
+
+
+// #endregion
+
 
 // /*
 //     Create an audit

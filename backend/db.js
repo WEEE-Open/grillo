@@ -64,13 +64,14 @@ export class Database {
             return this.db.run`
                 SELECT userid, starttime, endtime
                 FROM booking
-                WHERE starttime>=${startWeek} && endtime<=${endWeek};`;
+                WHERE starttime>=${startWeek} AND endtime<=${endWeek};`;
         }
         return this.db.run`
                 SELECT userid, starttime, endtime
                 FROM booking
-                WHERE starttime>=${startWeek} && endtime<=${endWeek}
-                        userid IN ${ sql(users) };`;
+                WHERE starttime >= ${startWeek} 
+                        AND endtime <= ${endWeek}
+                        AND userid IN (${sql(users)});`;
     }
 
     async getBooking(id){
@@ -252,128 +253,130 @@ export class Database {
 
 	// #endregion
 
+    // #region location
+    /**
+     * 
+     * @param {string} id 
+     */
+    async getLocation(id){
+        const location = await db.oneOrNone(`
+            SELECT * 
+            FROM "location"
+            WHERE id = $1
+        `, [id]);
+        return location;
+    }
+
+
+    // #endregion
+
     // #region audit
-
-    deleteAudit(userId, time) {
-        return new Promise((resolve, reject) => {
-            const sql = "DELETE FROM audit WHERE userId = ? AND time = ?;";
-
-            this.db.run(sql, [userId, time], (err) => {
-                if (err) {
-                    reject(err);
-                    return;
-                }
-                resolve(null);
-            });
-        })
+    /**
+     * 
+     * @param {string} userId
+     * @param {number} time
+     * @param {string} locationId
+     * @param {boolean} approved
+     */
+    addEntrance(userId, time, locationId, approved){
+        return this.db.run`
+			    INSERT INTO "audit" (userId, startTime, location, approved) 
+                VALUES (${userId}, ${time}, ${locationId}, ${approved});
+		        RETURNING *`
     }
-
-    addEntrance(userId, time) {
-        return new Promise((resolve, reject) => {
-            const sql = "INSERT INTO audit (userId, time, enter, motivation) VALUES (?, ?, TRUE, NULL);";
-
-            this.db.run(sql, [userId, time], (err) => {
-                if (err) {
-                    reject(err);
-                    return;
-                }
-                resolve(null);
-            });
-        })
-    }
-
-    addExit(userId, time, enter, motivation) {
-        return new Promise(async (resolve, reject) => {
-            const sql_time = "SELECT time FROM audit WHERE userId = ? and enter = true ORDER BY time DESC LIMIT 1;"
-            this.db.get(sql_time, [userId], (err, row) => {
-                if (err) {
-                    reject(err);
-                    return;
-                }
-                const enter_time = new Date(row.time);
-                const exit_time = new Date(time);
-                // time spent in the lab (in seconds)
-                const delta_time = (exit_time - enter_time) / 1000;
-                console.log(enter_time, exit_time, delta_time);
-
-                const sql_update = "UPDATE user SET seconds = seconds + ? WHERE id = ?;"
-                this.db.run(sql_update, [delta_time, userId], (err) => {
-                    if (err) {
-                        reject(err);
-                        return;
-                    }
-                    const sql = "INSERT INTO audit (userId, time, enter, motivation) VALUES (?, ?, ?, ?);";
-
-                    this.db.run(sql, [userId, time, enter, motivation], (err) => {
-                        if (err) {
-                            reject(err);
-                            return;
-                        }
-                        resolve(null);
-                    });
-                });
-            });
-        })
-    }
-
 
     /**
      * 
-     * @param {Date} startTime 
-     * @param {Date} endTime 
-     * @returns 
+     * @param {string} userId
+     * @param {number} time     exit time
+     * @param {boolean} approved
+     * @param {string} motivation   mandatory
      */
-    // add the possibility to select the Audit of certain users
-    // Add the possibility for admins to edit Audit
-    getAudit(startTime, endTime, user) {
-        return new Promise((resolve, reject) => {
-            let sql = `SELECT A1.userId, date(A1.time) AS date, time(A1.time) AS inTime, time(A2.time) AS outTime, A2.motivation
-            FROM audit A1, audit A2 
-            WHERE A1.userId = A2.userId AND CAST(A1.time AS DATE) = CAST(A2.time AS) AND A1.enter = 1 AND A2.enter = 0 AND A1.time < A2.time
-            AND A2.time = (SELECT MIN(time) FROM audit A WHERE A.userId = A1.userId AND A1.time < A.time)`;
-
-            let param = [];
-            if (startTime != null){
-                sql += " AND date(A1.time) >= ?";
-                param.push(startTime);
-            }
-            if (endTime != null){
-                sql += " AND date(A2.time) <= ?";
-                param.push(endTime);
-            }
-            if (user != null){
-                sql += " AND A1.userId = ?;";
-                param.push(user);
-            }
-            this.db.all(sql, param, (err, rows) => {
-                if (err) {
-                    reject(err);
-                    return;
-                }
-                resolve(rows);
-            });
-
-        });
-    } 
-
-    editAudit(userId, time, newTime, newMotivation){
-        return new Promise((resolve, reject) => {
-            let sql = `UPDATE audit
-                    SET time = ?,
-                        motivation = ?
-                    WHERE userId = ? AND time = ?;`;
-
-            this.db.all(sql, [time, newMotivation, userId, newTime], (err, rows) => {
-                if (err) {
-                    reject(err);
-                    return;
-                }
-                resolve(rows);
-            });
-
-        });
+    async addExit(userId, time, approved, motivation){
+        let entrance = await this.db.oneOrNone(`
+            SELECT * FROM "audit"
+            WHERE "userId" = $1 AND "startTime" = (
+                SELECT MAX("startTime")
+                FROM "audit"
+                WHERE "userId" = $1 AND "endTime" IS NULL AND startTime < $2
+            )
+            ORDER BY "startTime" DESC;
+        `, [userId, time]);
+        if (entrance){
+            let approval = approved && entrance.approved;
+            return this.db.run`
+                UPDATE audit SET endTime = ${time},
+                                 approved = ${approval},
+                                 motivation = ${motivation}
+                WHERE id = ${entrance} RETURNING *;`;
+        } else {
+            res.status(400).json({error: "The entrance has not been registered."});
+        }
     }
 
+    async getAudit(id){
+        const audit = await db.oneOrNone( `SELECT * 
+        FROM "audit"
+        WHERE id = $1`, [id]);
+        return audit;
+    }
+
+    editAudit(id, updates) {
+        let query = 'UPDATE "audit" SET';
+        const values = [];
+        let index = 1;
+    
+        for (const field in updates) {
+            if (index > 1) query += `,`;
+            query += ` ${field} = $${index}`;
+            values.push(updates[field]);
+            index++;
+        }
+        query += ` WHERE id = $${index} RETURNING *;`;
+        values.push(id);
+ 
+        return this.db.query(query, values);
+    }
+    
+    /**
+     * 
+     * @param {number=} start 
+     * @param {number=} end 
+     * @param {string[]=} users 
+     */
+    getAudits(start, end, users){
+        let query = `SELECT * FROM "audit"`;
+        const values = [];
+        let index = 1;
+        let conditions = [];
+
+        if (!isNaN(start)) {
+            conditions.push(`start = $${index}`);
+            values.push(start);
+            index++;
+        }
+        if (!isNaN(end)) {
+            conditions.push(`end = $${index}`);
+            values.push(end);
+            index++;
+        }
+        if (users != null && users.length != 0) {
+            const userPlaceholders = users.map((x, i) => `$${index + i}`).join(", ");
+            conditions.push(`userid IN (${userPlaceholders})`);
+            values.push(...users);
+            index += users.length;
+        }
+
+        if (conditions.length > 0) {
+            query += ` WHERE ` + conditions.join(" AND ");
+        }
+
+        query += `;`;
+
+        return this.db.run(query, values);
+    }
+
+   
     // #endregion
 
     // #region stats

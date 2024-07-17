@@ -75,3 +75,53 @@ CREATE TABLE IF NOT EXISTS "event" (
 	title TEXT NOT NULL,
     description TEXT
 );
+
+CREATE OR REPLACE FUNCTION update_user_seconds()
+RETURNS TRIGGER AS $$
+DECLARE
+    total_seconds INTEGER;
+    in_lab BOOLEAN;
+    user_id VARCHAR(255);
+BEGIN
+    -- Use id from old if deleting
+    IF TG_OP = 'DELETE' THEN
+        user_id := OLD.userId;
+    ELSE
+        user_id := NEW.userId;
+    END IF;
+    -- Calculate the total seconds for the userId in the audit table, skipping rows with NULL endTime
+    SELECT COALESCE(SUM(endTime - startTime), 0) INTO total_seconds
+    FROM audit
+    WHERE userId = user_id AND endTime IS NOT NULL AND approved=true;
+
+    -- Determine if the user is currently in the lab
+    SELECT EXISTS (SELECT 1 FROM audit WHERE userId = NEW.userId AND endTime IS NULL) INTO in_lab;
+
+    -- Update the seconds and inLab fields in the user table
+    UPDATE "user"
+    SET seconds = total_seconds, inlab = in_lab
+    WHERE id = user_id;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+-- Trigger for INSERT operation
+CREATE TRIGGER audit_insert_trigger
+AFTER INSERT ON audit
+FOR EACH ROW
+EXECUTE FUNCTION update_user_seconds();
+
+-- Trigger for UPDATE operation
+CREATE TRIGGER audit_update_trigger
+AFTER UPDATE ON audit
+FOR EACH ROW
+EXECUTE FUNCTION update_user_seconds();
+
+-- Trigger for DELETE operation
+CREATE TRIGGER audit_delete_trigger
+AFTER DELETE ON audit
+FOR EACH ROW
+EXECUTE FUNCTION update_user_seconds();
