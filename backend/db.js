@@ -270,6 +270,68 @@ export class Database {
 
     // #endregion
 
+    // #lab status
+    async userInLab(){
+        let dbData = await this.db`
+            SELECT * FROM "user" WHERE inLab = TRUE;
+        `;
+		let ldapData = await this.ldap.getUsers();
+		return  dbData.map(dbUser => {
+			let ldapUser = ldapData.find(ldapUser => ldapUser.id == dbUser.id);
+			return {
+				...ldapUser,
+				id: dbUser.id,
+				seconds: dbUser.seconds,
+				inlab: dbUser.inlab,
+			};
+		})
+    }
+
+    labOpen(){
+        let openLab = this.userInLab().filter(user => user !== null)
+        .filter(user => user.isAdmin === true);
+        return isOpen = openLab.rows && openLab.rows.length>0;
+    }
+
+    async nextOpening(){
+        let dbData = await this.db`
+        SELECT * FROM "user" WHERE inLab = TRUE;
+        `;
+        let ldapData = await this.ldap.getUsers();
+        let adminIds = dbData.map(dbUser => {
+                let ldapUser = ldapData.find(ldapUser => ldapUser.id == dbUser.id);
+                if (!ldapUser) return null;
+                return {
+                    ...ldapUser,
+                    id: dbUser.id
+                };
+            }).filter(user => user !== null)
+            .filter(user => user.isAdmin === true)
+            .map(user => user.id)
+            return this.db.run`
+            SELECT DISTINCT startTime, endTime FROM "booking" 
+            WHERE startTime = (
+                SELECT MIN(startTime)
+                FROM "booking"
+                WHERE userId = ANY(${this.db.sql(adminIds)})
+            )
+            AND userId = ANY(${this.db.sql(adminIds)})
+            AND endTime = (
+                SELECT MAX(endTime)
+                FROM "booking"
+                WHERE startTime = (
+                    SELECT MIN(startTime)
+                    FROM "booking"
+                    WHERE userId = ANY(${this.db.sql(adminIds)})
+                )
+                AND userId = ANY(${this.db.sql(adminIds)})
+            )
+        `;
+    }
+
+
+    // #endregion
+
     // #region audit
     /**
      * 
@@ -283,6 +345,38 @@ export class Database {
 			    INSERT INTO "audit" (userId, startTime, location, approved) 
                 VALUES (${userId}, ${time}, ${locationId}, ${approved});
 		        RETURNING *`
+    }
+
+    alreadyLogged(userId){
+        let logged = this.db.run `SELECT * FROM "audit" 
+        WHERE userId = ${userId} AND endTime IS NULL;`
+        return logged.rows && logged.rows.length > 0;
+    }
+
+
+    /**
+     * 
+     * @param {string} userId 
+     * @param {number} startTime 
+     */
+    async bookingToDelete(userId, startTime){
+        let today = new Date(startTime);
+        let tomorrow = new Date(today.getFullYear(), today.getMonth(), today.getDate()+1);
+        const startDay = Math.floor(today.getTime() / 1000);
+        const endDay = Math.floor(tomorrow.getTime() / 1000);
+        let toDelete = await this.db.run `SELECT id FROM "booking"
+                                    WHERE userId = ${userId} 
+                                        AND startTime >= ${startDay}
+                                        AND startTime < ${endDay}
+                                        AND startTime = (SELECT MIN(startTime)
+                                                        FROM "booking"
+                                                        WHERE userId = ${userId} 
+                                                        AND startTime >= ${startDay}
+                                                        AND startTime < ${endDay})`;
+        if (toDelete.rows && toDelete.rows.length > 0) {
+            const toDeleteId = res.rows.map(row => row.id);
+            this.deleteBooking(toDeleteId)
+        }
     }
 
     /**
@@ -308,7 +402,7 @@ export class Database {
                 UPDATE audit SET endTime = ${time},
                                  approved = ${approval},
                                  motivation = ${motivation}
-                WHERE id = ${entrance} RETURNING *;`;
+                WHERE id = ${entrance.id} RETURNING *;`;
         } else {
             res.status(400).json({error: "The entrance has not been registered."});
         }

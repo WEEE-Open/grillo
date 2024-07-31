@@ -123,10 +123,18 @@ router.delete('/user/session', async (req, res) => {
 	res.sendStatus(204);
 });
 
-router.get('/lab/info');
+router.get('/lab/info', (req, res) => {
+	/// ecc
+
+	res.json({
+		isLabOpen: labOpen(),
+		people: userInLab(),
+		nextOpening: nextOpening()
+	})
+});
 // audit
-router.post('/lab/in');
-router.post('/lab/out'); 
+//router.post('/lab/in');
+//router.post('/lab/out'); 
 router.post('/lab/ring', async (req, res) => {
 	if (req.session.isReadOnly) {
 		res.status(403).send('Forbidden');
@@ -146,7 +154,7 @@ router.post('/lab/ring', async (req, res) => {
 // router.post('/bookings/:id');   //to edit a booking
 // router.delete('/bookings/:id');
 
-router.get('/audits');
+//router.get('/audits');
 
 router.get('/stats');
 
@@ -255,13 +263,19 @@ router.post('/bookings/:id', async (req, res) => {
  * 	Create entrace
  * 
  * Body contains:
- * (int) startTime
+ * (number) userId
+ * (number) startTime
  * (string) locationId
  */
-router.post('/audits/in', async (req, res) => {
+router.post('/lab/in', async (req, res) => {
+	var user = req.body.userId;
     var inTime = parseInt(req.body.startTime);
-	var idLocation = getLocation(id);
-	if (!idLocation){
+	var location = getLocation(req.body.locationId);
+	if (!req.user.isAdmin && req.user.id != user){
+		res.status(400).json({error: "Invalid user"});
+        return;
+	}
+	if (!location){
 		res.status(400).json({error: "Invalid location"});
         return;
 	}
@@ -269,7 +283,11 @@ router.post('/audits/in', async (req, res) => {
         res.status(400).json({error: "Invalid time"});
         return;
     }
-    let audit = await addEntrance(req.user.id, inTime, req.body.idLocation, req.user.isAdmin);
+	if (alreadyLogged){
+		res.status(400).json({error: "User already logged in"});
+        return;
+	}
+    let audit = await addEntrance(user, inTime, req.body.idLocation, req.user.isAdmin);
     res.status(200).json(audit);
 });
 
@@ -280,13 +298,19 @@ router.post('/audits/in', async (req, res) => {
  * (int) outTime
  * (string) motivation mandatory
  */
-router.post('/audits/out', async(req, res) => {
+router.post('/lab/out', async(req, res) => {
+	var user = req.body.userId;
 	var outTime = parseInt(req.body.outTime);
+	if (!req.user.isAdmin && req.user.id != user){
+		res.status(400).json({error: "Invalid user"});
+        return;
+	}
 
     if(outTime == NaN){
         res.status(400).json({error: "Invalid time"});
         return;
     }
+	await bookingToDelete(user, inTime);
     let audit = await addExit(req.user.id, outTime, req.user.isAdmin, req.body.motivation);
     res.status(200).json(audit);
 })
@@ -310,6 +334,14 @@ router.patch('/audits/:id', async(req, res) => {
 	}
 	if (!req.user.isAdmin){
 		res.status(400).json({error: "Operation not allowed"});
+        return;
+	}
+	let startTime = parseInt(req.body.startTime);
+	let endTime = parseInt(req.bpdy.endTime);
+	if (startTime == NaN)	startTime = audit.startTime;
+	if (endTime == NaN)		endTime = audit.endTime;
+	if (dayjs.unix(inTime).isAfter(dayjs.unix(endTime))){
+		res.status(400).json({error: "Invalid time"});
         return;
 	}
 	let params = req.body;
