@@ -1,6 +1,6 @@
 import postgres from 'postgres';
 import bcrypt from 'bcrypt';
-import { Booking } from './models.js';
+import { User, Session, Booking } from './models.js';
 import dayjs from 'dayjs';
 
 import Ldap from './ldap.js';
@@ -122,12 +122,10 @@ export class Database {
 		let ldapData = await this.ldap.getUsers();
 		return dbData.map(dbUser => {
 			let ldapUser = ldapData.find(ldapUser => ldapUser.id == dbUser.id);
-			return {
+			return new User({
 				...ldapUser,
-				id: dbUser.id,
-				seconds: dbUser.seconds,
-				inlab: dbUser.inlab,
-			};
+				...dbUser,
+			});
 		});
     }
 
@@ -143,12 +141,10 @@ export class Database {
 		if (ldapData == null) {
 			return null;
 		}
-		return {
+		return new User({
 			...ldapData,
-			id: dbData.id,
-			seconds: dbData.seconds,
-			inlab: dbData.inlab,
-		};
+			...dbData,
+		});
 	}
 
     deleteUser(userId) {
@@ -173,14 +169,15 @@ export class Database {
 		}
     }
 
-	async getUserByCookie(cookie) {
+	async getSessionByCookie(cookie) {
 		let user = await this.db`
 			SELECT userId FROM cookie WHERE cookie = ${cookie};
 		`;
 		if (user.length == 0) {
 			return null;
 		}
-		return await this.getUser(user[0].userid);
+		let userData = await this.getUser(user[0].userid);
+		return new Session("user", userData);
 	}
 
 	deleteCookie(cookie) {
@@ -218,11 +215,7 @@ export class Database {
 		if (dbData == undefined || !await bcrypt.compare(hash, dbData.hash)) {
 			return null;
 		}
-		return {
-			id: dbData.id,
-			isReadOnly: dbData.readonly,
-			isAdmin: dbData.isadmin
-		};
+		return new Session("api", dbData);
 	}
 
 	async deleteToken(id) {

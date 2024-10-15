@@ -15,6 +15,9 @@ services:
     ports:
       - "3000:3000"
       - "5173:5173"
+    depends_on:
+      - db
+    stop_grace_period: 1s
   db:
     build: 
       context: "."

@@ -1,6 +1,7 @@
 export class User{
     constructor(opt){
         this.id = opt.id;
+		this.uid = opt.uid;
         this.username = opt.username;
         this.name = opt.name;
         this.surname = opt.surname;
@@ -17,6 +18,49 @@ export class User{
         }
         return this.groups.includes('soviet');
     }
+}
+
+export class Session {
+	/**
+	 * 
+	 * @param {'user'|'api'} type 
+	 * @param {User|Api} entity 
+	 */
+	constructor(type, entity) {
+		/**
+		 * @type {'user'|'api'}
+		 */
+		this.type = type;
+		if (this.isUser) {
+			/**
+			 * @type {User}
+			 */
+			this.user = entity;
+		} else if (this.isApi) {
+			/**
+			 * @type {Api}
+			 */
+			this.api = entity;
+		}
+	}
+
+	get isUser() {
+		return this.type == 'user';
+	}
+
+	get isApi() {
+		return this.type == 'api';
+	}
+
+	get isReadOnly() {
+		if (this.isUser) return false;
+		else if (this.isApi) return this.api.readOnly;
+	}
+
+	get isAdmin() {
+		if (this.isUser) return this.user.isAdmin;
+		else if (this.isApi) return this.api.admin;
+	}
 }
 
 export class Booking{

@@ -13,6 +13,11 @@ const config = {
 		updateCron: "0 * * * * *",
 	},
 	apiKeySaltRounds: 10,
+	sso: {
+		secret: 'asdasdasdasd',
+		loginRedirect: 'https://sso.example.com/login?redirect=grillo.example.com/login&response_type=code',
+		codeValidation: 'https://sso.example.com/validate?code=${code}',
+	},
 };
 
 
