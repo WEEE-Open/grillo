@@ -249,17 +249,52 @@ export class Database {
     // #region location
     /**
      * 
-     * @param {string} id 
+     * @param {string} id
+     * @param {string} name 
      */
-    async getLocation(id){
-        const location = await db.oneOrNone(`
+
+    async getLocations(){
+        console.log("asd db");
+        const location = await this.db`
             SELECT * 
             FROM "location"
-            WHERE id = $1
-        `, [id]);
+        `;
         return location;
     }
 
+
+    async getLocation(id){
+        const location = await this.db`
+            SELECT * 
+            FROM "location"
+            WHERE id = ${id}
+        `;
+        return location;
+    }
+
+
+    async addLocation(id, name) {
+        
+        const result = await this.db`
+            INSERT INTO location (id, name)
+            VALUES (${id}, ${name})
+            RETURNING *;
+        `;
+        return result[0]; 
+    }
+    
+    
+    async editLocation(id, name) {
+        const result = await this.db`
+            UPDATE location
+            SET name = ${name}
+            WHERE id = ${id}
+            RETURNING *;
+        `;
+        console.log(result);
+        return result[0];
+    }
+    
 
     // #endregion
 
@@ -323,7 +358,9 @@ export class Database {
     }
 
 
+
     // #endregion
+
 
     // #region audit
     /**
@@ -500,6 +537,59 @@ export class Database {
         });
     } 
 
+
+    // #endregion
+
+
+    // #region events
+    /**
+    * 
+    * @param {string} id
+    * @param {number} startTime
+    * @param {number=} endTime
+    * @param {string} title
+    * @param {string=} description
+    */
+
+
+    async getEvents(){
+        const event = await this.db`
+            SELECT * 
+            FROM "event";
+        `;
+        return event;
+    }
+
+    async getEvent(id){
+        const event = await this.db`
+            SELECT * 
+            FROM "event"
+            WHERE id = ${id};
+        `;
+        
+        return event[0];
+    }
+
+    async addEvent(id,startTime,endTime,title,description){
+        const query = await this.db`
+            INSERT INTO event
+            VALUES (${id},${startTime},${endTime},${title},${description})
+            RETURNING *;
+        `;
+        
+        return query; 
+    }
+
+    async editEvent(id,startTime,endTime,title,description){
+        const query = `
+        UPDATE "locations"
+        SET  startTime = ${startTime},endTime=${endTime},title=${title},description = ${description}
+        WHERE id = ${id}
+        RETURNING *;
+    `;
+    
+    return result.rows[0];   
+    };
 
     // #endregion
 

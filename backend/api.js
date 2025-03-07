@@ -1,7 +1,7 @@
 import config from './config.js';
 import express, { query } from 'express';
 import { db, io } from './index.js';
-import { authRO, authRW, validateSession } from './authorization.js';
+import { authAdmin, authRO, authRW, validateSession } from './authorization.js';
 import dayjs from 'dayjs';
 import cookieParser from 'cookie-parser';
 
@@ -108,30 +108,65 @@ router.post('/lab/ring', authRW, async (req, res) => {
 	}
 });
 
-// router.get('/bookings'); done
-// router.post('/bookings/new'); done
-// router.post('/bookings/:id');   //to edit a booking
-// router.delete('/bookings/:id');
+// region events
 
-//router.get('/audits');
+router.get('/events', authRW,async (req, res) => {
+	const event = await db.getEvents();
 
-/*ggedIn.get('/stats');
+	if (!event) {
+		return res.status(500).json({ error: "No events found" });
+	}
 
-loggedIn.get('/notifications/new');
-loggedIn.post('/notification/:id');   //to edit a notification
-loggedIn.delete('/notification/:id');
+	res.status(200).json(event).send();
+});
 
-loggedIn.post('/notification/:id/read');
-loggedIn.post('/notification/:id/delivered');
+router.post('/events/new',authAdmin, async (req, res) => {
+	const exevent = await db.getEvent(req.body.id);
+	console.log("asd");
+	if(exevent){
+		return res.status(400).json({ error: "L'ID della location esiste già" });
+	}
+	var startTime = parseInt(req.body.startTime);
+	var endTime = parseInt(req.body.endTime);
 
-loggedIn.get('/tokens');
-loggedIn.post('/tokens/new');
-loggedIn.delete('/bookings/:id');
+	if(startTime == NaN || dayjs.unix(startTime).isBefore(dayjs())){
+		res.status(400).json({error: "Invalid time"});
+		return;
+	}
+	if(endTime != NaN && dayjs.unix(endTime).isAfter(dayjs.unix(startTime))){
+		res.status(400).json({error: "End time is before start time"});
+		return;
+	}
+	
+	let event = await addEvent(req.body.id,startTime,endTime, req.body.title, req.body.description);
+	res.status(200).json(event).send();
+});
 
-loggedIn.get('/events');
-loggedIn.post('/events/new');
-loggedIn.post('/events/:id');
-loggedIn.delete('/events/:id');*/
+router.get('/events/:id',authAdmin,async (req, res) => {
+	console.log("asd");
+	let event = db.getEvent(req.params.id);
+	
+	var startTime = parseInt(req.body.startTime);
+	var endTime = parseInt(req.body.endTime);
+
+	if(startTime == NaN || dayjs.unix(startTime).isBefore(dayjs())){
+		res.status(400).json({error: "Invalid time"});
+		return;
+	}
+	if(endTime != NaN && dayjs.unix(startTime).isAfter(dayjs.unix(endTime))){
+		res.status(400).json({error: "End time is before start time"});
+		return;
+	}
+	if (endTime == NaN) endTime = null;
+	await db.editEvent(event.id, startTime, endTime, req.body.title, req.body.description);
+	res.sendStatus(200).send();
+});
+
+router.delete('/events/:id',authAdmin, async (req,res)=> {
+	
+});
+
+// #ENDREGION
 
 // #region bookings
 
@@ -328,5 +363,45 @@ router.get('/audits',authRO, async (req, res) => {
 
 // #endregion
 
+// region locations
+
+router.get('/locations',authRO,async (req, res) =>{
+	const locations = await db.getLocations();
+	if (!locations) {
+		return res.status(500).json({ error: "No locations found" });
+	}
+
+	res.status(200).json(locations);
+});
+
+router.post('/locations/new',authAdmin,async (req, res) =>{
+	const existingLocation = await db.getLocation(req.body.id);
+	console.log("asd");
+	if (existingLocation) {
+		return res.status(400).json({ error: "L'ID della location esiste già" });
+	}
+
+	let location = await db.addLocation(req.body.id, req.body.name);
+    res.status(200).json(location);
+});
+
+router.patch('/locations/:id',authAdmin,async (req, res) =>{
+	let locationsid = req.params.id;
+	let location = db.getLocation(locationsid);
+	if (!location){
+		res.status(400).json({error: "Invalid location id"});
+        return;
+	}
+	
+	let name = req.body.name;
+	let edLocation = await db.editLocation(locationsid, name);
+	res.status(200).json(edLocation); 
+});
+
+router.delete('/locations/:id',authAdmin,async (req, res) =>{
+	res.status(501).send();
+});
+
+// #endregion
 
 export default router;
