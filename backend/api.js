@@ -1,6 +1,7 @@
 import config from './config.js';
 import express, { query } from 'express';
 import { db, io } from './index.js';
+import { authRO, authRW, validateSession } from './authorization.js';
 import dayjs from 'dayjs';
 import cookieParser from 'cookie-parser';
 
@@ -8,50 +9,7 @@ import cookieParser from 'cookie-parser';
 const router = express.Router();
 router.use(cookieParser());
 
-router.use(async (req, res, next) => {
-	if (req.cookies && req.cookies.session) {
-		let session = await db.getSessionByCookie(req.cookies.session);
-		if (session) {
-			req.session = session;
-		}
-	}
-	if (!req.session && req.get('Authorization') != undefined) {
-		let [type, token] = req.get('Authorization').split(' ')[1];
-		if (type != 'Bearer') { // this is in preparation for future in case we want to move to jwt or something else
-			res.status(400).send('Invalid Authorization header');
-			return;
-		}
-		let session = await db.validateApiToken(token);
-		if (session) {
-			req.session = session;
-		}
-	}
-	next();
-});
-
-const loggedIn = express.Router({mergeParams: true});
-loggedIn.use((req, res, next) => {
-	if (!req.session) {
-		res.status(401).json({ error: "Unauthorized" });
-		return;
-	}
-	
-	if (req.session.blocked) {
-		res.status(423).json({ error: "User blocked" });
-		return;
-	}
-	
-	next();
-});
-
-const admin = express.Router({mergeParams: true});
-admin.use(async (req, res, next) => {
-	if (!req.session.isAdmin) {
-		res.status(403).json({ error: "Forbidden" });
-		return;
-	}
-	next();
-});
+router.use(validateSession);
 
 router.get('/ping', async (req, res) => {
     res.send('pong');
@@ -104,11 +62,12 @@ if (config.testMode) {
 	});
 }
 
-loggedIn.get('/user', async (req, res) => {
-    res.json(req.user);
+router.get('/user', authRW, async (req, res) => {
+	console.log(req.session);
+    res.json(req.session);
 });
 
-loggedIn.delete('/user/session', async (req, res) => {
+router.delete('/user/session', authRW,async (req, res) => {
 	if (req.session.type == 'api') {
 		if (req.session.isAdmin) {
 			await db.deleteApiKey(req.session.id);
@@ -123,7 +82,7 @@ loggedIn.delete('/user/session', async (req, res) => {
 	res.sendStatus(204);
 });
 
-loggedIn.get('/lab/info', (req, res) => {
+router.get('/lab/info', authRO, (req, res) => {
 	/// ecc
 
 	res.json({
@@ -135,7 +94,7 @@ loggedIn.get('/lab/info', (req, res) => {
 // audit
 //router.post('/lab/in');
 //router.post('/lab/out'); 
-loggedIn.post('/lab/ring', async (req, res) => {
+router.post('/lab/ring', authRW, async (req, res) => {
 	if (req.session.isReadOnly) {
 		res.status(403).send('Forbidden');
 		return;
@@ -156,7 +115,7 @@ loggedIn.post('/lab/ring', async (req, res) => {
 
 //router.get('/audits');
 
-loggedIn.get('/stats');
+/*ggedIn.get('/stats');
 
 loggedIn.get('/notifications/new');
 loggedIn.post('/notification/:id');   //to edit a notification
@@ -172,14 +131,14 @@ loggedIn.delete('/bookings/:id');
 loggedIn.get('/events');
 loggedIn.post('/events/new');
 loggedIn.post('/events/:id');
-loggedIn.delete('/events/:id');
+loggedIn.delete('/events/:id');*/
 
 // #region bookings
 
 /*
     Create a booking
 */
-loggedIn.post('/bookings/new', async (req, res) => {
+router.post('/bookings/new',authRW, async (req, res) => {
     var inTime = parseInt(req.body.startTime);
     var endTime = parseInt(req.body.endTime);
 
@@ -199,7 +158,7 @@ loggedIn.post('/bookings/new', async (req, res) => {
 /*
     Get all bookings
 */
-loggedIn.get('/bookings', async (req, res) => {
+router.get('/bookings',authRO, async (req, res) => {
     let week = parseInt(req.query.week);
     let year = parseInt(req.query.year);
     let users = req.query.user.split(",");
@@ -221,7 +180,7 @@ loggedIn.get('/bookings', async (req, res) => {
 /*
     Delete a booking
 */ 
-loggedIn.delete('/bookings/:id', async (req, res) => {
+router.delete('/bookings/:id',authRW, async (req, res) => {
     let booking = db.getBooking(req.params.id);
     if (booking.userId != req.user.id && !req.user.isAdmin){
         res.status(403).send("Not authorized");
@@ -234,7 +193,7 @@ loggedIn.delete('/bookings/:id', async (req, res) => {
 /*
     Edit a booking
 */ 
-loggedIn.post('/bookings/:id', async (req, res) => {
+router.post('/bookings/:id',authRW, async (req, res) => {
     let booking = db.getBooking(req.params.id);
     if (booking.userId != req.user.id && !req.user.isAdmin){
         res.status(403).send("Not authorized");
@@ -267,7 +226,7 @@ loggedIn.post('/bookings/:id', async (req, res) => {
  * (number) startTime
  * (string) locationId
  */
-loggedIn.post('/lab/in', async (req, res) => {
+router.post('/lab/in',authRW, async (req, res) => {
 	var user = req.body.userId;
     var inTime = parseInt(req.body.startTime);
 	var location = getLocation(req.body.locationId);
@@ -298,7 +257,7 @@ loggedIn.post('/lab/in', async (req, res) => {
  * (int) outTime
  * (string) motivation mandatory
  */
-loggedIn.post('/lab/out', async(req, res) => {
+router.post('/lab/out',authRW, async(req, res) => {
 	var user = req.body.userId;
 	var outTime = parseInt(req.body.outTime);
 	if (!req.user.isAdmin && req.user.id != user){
@@ -325,7 +284,7 @@ loggedIn.post('/lab/out', async(req, res) => {
  * {boolean=} approved
  * {string=} location 
  */
-loggedIn.patch('/audits/:id', async(req, res) => {
+router.patch('/audits/:id',authRW, async(req, res) => {
 	let auditId = req.params.id;
 	let audit = getAudit(auditId);
 	if (!audit){
@@ -356,7 +315,7 @@ loggedIn.patch('/audits/:id', async(req, res) => {
  * {number=} end
  * {sring[]=} users
  */
-loggedIn.get('/audits', async (req, res) => {
+router.get('/audits',authRO, async (req, res) => {
     let start = parseInt(req.query.start);
     let end = parseInt(req.query.end);
     let users = req.query.user.split(",");
@@ -369,8 +328,5 @@ loggedIn.get('/audits', async (req, res) => {
 
 // #endregion
 
-
-router.use(loggedIn);
-loggedIn.use(admin);
 
 export default router;
