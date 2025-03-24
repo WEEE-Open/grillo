@@ -41,7 +41,8 @@ export default class Time {
 	}
 
 	/**
-	 * 
+	 * 	dayjs(dateString, "DD/MM/YYYY HH:mm").unix();
+
 	 * @param {Date} date 
 	 * @returns {Time}
 	 */

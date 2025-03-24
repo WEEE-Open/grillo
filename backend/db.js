@@ -561,35 +561,48 @@ export class Database {
     }
 
     async getEvent(id){
+        console.log(id);
         const event = await this.db`
             SELECT * 
             FROM "event"
             WHERE id = ${id};
         `;
-        
+        console.log(event);
         return event[0];
     }
 
     async addEvent(id,startTime,endTime,title,description){
-        const query = await this.db`
+        const event = await this.db`
             INSERT INTO event
             VALUES (${id},${startTime},${endTime},${title},${description})
             RETURNING *;
         `;
-        
-        return query; 
+        console.log(event);
+        return event[0];
     }
 
     async editEvent(id,startTime,endTime,title,description){
-        const query = `
-        UPDATE "locations"
-        SET  startTime = ${startTime},endTime=${endTime},title=${title},description = ${description}
+        console.log(id,startTime,endTime,title,description);
+        const event = await this.db`
+        UPDATE event
+        SET  starttime = ${startTime},endtime=${endTime},title=${title},description = ${description}
         WHERE id = ${id}
         RETURNING *;
-    `;
-    
-    return result.rows[0];   
+    `
+    console.log(event);
+    return event[0];
     };
+
+    async deleteEvent(id) {
+        const event = await this.db`
+            DELETE FROM event
+            WHERE id = ${id}
+            RETURNING *;
+        `;
+    
+        return event[0];
+    }
+    
 
     // #endregion
 

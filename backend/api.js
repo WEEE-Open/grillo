@@ -4,6 +4,7 @@ import { db, io } from './index.js';
 import { authAdmin, authRO, authRW, validateSession } from './authorization.js';
 import dayjs from 'dayjs';
 import cookieParser from 'cookie-parser';
+import Time from './time.js';
 
 
 const router = express.Router();
@@ -108,6 +109,17 @@ router.post('/lab/ring', authRW, async (req, res) => {
 	}
 });
 
+function toUnixTimestamp(dateString) {
+    // Dividere la stringa in giorno, mese, anno, ore e minuti
+    const [day, month, year, hours, minutes] = dateString.match(/\d+/g).map(Number);
+
+    // Riorganizzare la data nel formato ISO accettato da dayjs: "YYYY-MM-DDTHH:mm"
+    const formattedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+
+    // Convertire in timestamp UNIX
+    return dayjs(formattedDate).unix();
+}
+
 // region events
 
 router.get('/events', authRW,async (req, res) => {
@@ -117,53 +129,50 @@ router.get('/events', authRW,async (req, res) => {
 		return res.status(500).json({ error: "No events found" });
 	}
 
-	res.status(200).json(event).send();
+	res.status(200).json(event);
 });
 
 router.post('/events/new',authAdmin, async (req, res) => {
 	const exevent = await db.getEvent(req.body.id);
-	console.log("asd");
+	console.log("asd post new");
 	if(exevent){
 		return res.status(400).json({ error: "L'ID della location esiste già" });
 	}
-	var startTime = parseInt(req.body.startTime);
-	var endTime = parseInt(req.body.endTime);
 
-	if(startTime == NaN || dayjs.unix(startTime).isBefore(dayjs())){
-		res.status(400).json({error: "Invalid time"});
-		return;
-	}
-	if(endTime != NaN && dayjs.unix(endTime).isAfter(dayjs.unix(startTime))){
-		res.status(400).json({error: "End time is before start time"});
-		return;
-	}
-	
-	let event = await addEvent(req.body.id,startTime,endTime, req.body.title, req.body.description);
-	res.status(200).json(event).send();
+	let event = await db.addEvent(req.body.id,toUnixTimestamp(req.body.startTime),toUnixTimestamp(req.body.endTime), req.body.title, req.body.description);
+	res.status(200).json(event);
 });
 
 router.get('/events/:id',authAdmin,async (req, res) => {
-	console.log("asd");
-	let event = db.getEvent(req.params.id);
-	
-	var startTime = parseInt(req.body.startTime);
-	var endTime = parseInt(req.body.endTime);
-
-	if(startTime == NaN || dayjs.unix(startTime).isBefore(dayjs())){
-		res.status(400).json({error: "Invalid time"});
-		return;
+	console.log("asd get events id");
+	let event = await db.getEvent(req.params.id);
+	if (!event) {
+		return res.status(500).json({ error: "No events found" });
 	}
-	if(endTime != NaN && dayjs.unix(startTime).isAfter(dayjs.unix(endTime))){
-		res.status(400).json({error: "End time is before start time"});
-		return;
-	}
-	if (endTime == NaN) endTime = null;
-	await db.editEvent(event.id, startTime, endTime, req.body.title, req.body.description);
-	res.sendStatus(200).send();
+	res.status(200).json(event);
 });
 
-router.delete('/events/:id',authAdmin, async (req,res)=> {
+router.post('/events/:id',authAdmin,async (req, res) => {
+	console.log("asd eventi id post");
+	let event = await db.getEvent(req.params.id);
 	
+	var startTime = toUnixTimestamp(req.body.startTime);
+	var endTime = toUnixTimestamp(req.body.endTime);
+	if (endTime == NaN) endTime = null;
+	let editedEvent = await db.editEvent(event.id, startTime, endTime, req.body.title, req.body.description);
+	res.status(200).json(editedEvent);
+});
+
+
+router.delete('/events/:id',authAdmin, async (req,res)=> {
+	const eventId = req.params.id;
+    const deletedEvent = await db.deleteEvent(eventId);
+
+        if (!deletedEvent) {
+            return res.status(404).json({ error: "Event not found" });
+        }
+
+        res.status(200).json("Deleted :)");
 });
 
 // #ENDREGION
