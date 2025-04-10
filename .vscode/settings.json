@@ -22,5 +22,15 @@
         "editorWidget.border": "#007a2e",
         "editorWidget.resizeBorder": "#007a2e",
         "editorWidget.foreground": "#007a2e"
+    },
+
+    "emeraldwalk.runonsave": {
+        "commands": [
+            {
+                "match": ".*",
+                "cmd": "docker compose up -d"
+            }
+        ]
     }
+
 }

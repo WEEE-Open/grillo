@@ -6,6 +6,8 @@ import dayjs from 'dayjs';
 import cookieParser from 'cookie-parser';
 import Time from './time.js';
 
+import isoWeek from 'dayjs/plugin/isoWeek.js';
+dayjs.extend(isoWeek);
 
 const router = express.Router();
 router.use(cookieParser());
@@ -110,15 +112,33 @@ router.post('/lab/ring', authRW, async (req, res) => {
 });
 
 function toUnixTimestamp(dateString) {
-    // Dividere la stringa in giorno, mese, anno, ore e minuti
-    const [day, month, year, hours, minutes] = dateString.match(/\d+/g).map(Number);
+	if(dateString==undefined){
+		return NaN;
+	}
+    // Se è già un timestamp UNIX (numero), restituiscilo direttamente
+    if (!isNaN(dateString)) return Number(dateString);
 
-    // Riorganizzare la data nel formato ISO accettato da dayjs: "YYYY-MM-DDTHH:mm"
-    const formattedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    // Prova a parsare come ISO 8601
+    let timestamp = dayjs(dateString);
+    if (timestamp.isValid()) {
+        return timestamp.unix();
+    }
 
-    // Convertire in timestamp UNIX
-    return dayjs(formattedDate).unix();
+    // Prova a parsare come formato "DD/MM/YYYY HH:mm"
+    const match = dateString.match(/^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})$/);
+    if (match) {
+        const [, day, month, year, hours, minutes] = match.map(Number);
+        const formattedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+        timestamp = dayjs(formattedDate);
+        if (timestamp.isValid()) {
+            return timestamp.unix();
+        }
+    }
+
+    // Se il formato non è valido, restituisci NaN
+    return NaN;
 }
+
 
 // region events
 
@@ -183,43 +203,55 @@ router.delete('/events/:id',authAdmin, async (req,res)=> {
     Create a booking
 */
 router.post('/bookings/new',authRW, async (req, res) => {
-    var inTime = parseInt(req.body.startTime);
-    var endTime = parseInt(req.body.endTime);
 
-    if(inTime == NaN || dayjs.unix(inTime).isBefore(dayjs())){
+    var inTime = toUnixTimestamp(req.body.startTime);
+    var endTime = toUnixTimestamp(req.body.endTime);
+
+    if(isNaN(inTime) || dayjs.unix(inTime).isBefore(dayjs())){
         res.status(400).json({error: "Invalid time"});
         return;
     }
-    if(endTime != NaN && dayjs.unix(inTime).isAfter(dayjs.unix(endTime))){
-        res.status(400).json({error: "End time is before start time"});
-        return;
-    }
+		
+
+	if(req.session.isAdmin && isNaN(endTime) ){
+		res.status(400).json({error: "Gli admin DEVONO inserire una data di uscita"});
+	   return;
+	} 
+	
+	if(isNaN(inTime) && dayjs.unix(inTime).isAfter(dayjs.unix(endTime))){
+			res.status(400).json({error: "End time is before start time"});
+		return;
+	}
+	
     if (endTime == NaN) endTime=null;
-    let booking = await db.addBooking(req.body.user, inTime, endTime);
+    let booking = await db.addBooking(req.session.user.id, inTime, endTime);
     res.status(200).json(booking);
 });
 
 /*
     Get all bookings
 */
-router.get('/bookings',authRO, async (req, res) => {
+router.get('/bookings', authRO, async (req, res) => {
     let week = parseInt(req.query.week);
     let year = parseInt(req.query.year);
-    let users = req.query.user.split(",");
-    let date = dayjs();
-    if (week != NaN && year != NaN){
-        date = date.year(year).isoWeek(week);
-    } else if (week != NaN || year != NaN) {
-        res.status(400).send("missing week/year");
+    let date;
+    // Controlla se i parametri sono numeri validi
+    if (!isNaN(week) && !isNaN(year)) {
+        date = dayjs().year(year).isoWeek(week);
+    } else if (!isNaN(week) || !isNaN(year)) {
+        res.status(400).json({ error: "Missing week or year" });
         return;
+    } else {
+        date = dayjs(); // Se mancano entrambi, usa la data attuale
     }
+
     let startWeek = date.startOf('isoWeek');
     let endWeek = date.endOf('isoWeek');
 
-    const bookings = await db.getBookings(startWeek, endWeek, users);
+    const bookings = await db.getBookings(startWeek.unix(), endWeek.unix(), users);
     res.json(bookings);
+    
 });
-
 
 /*
     Delete a booking

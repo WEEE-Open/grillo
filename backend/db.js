@@ -40,12 +40,12 @@ export class Database {
      */
     async addBooking(userId, startTime, endTime) {
         if (endTime == null){
-            return this.db.run`
+            return this.db`
 			    INSERT INTO booking (userId, startTime) 
                 VALUES (${userId}, ${startTime});
 		        RETURNING *`
         }
-		return this.db.run`
+		return this.db`
 			INSERT INTO booking (userId, startTime, endTime) 
             VALUES (${userId}, ${startTime}, ${endTime}) 
             RETURNING *;
@@ -61,12 +61,12 @@ export class Database {
      */
     async getBookings(startWeek, endWeek, users){
         if (users == null || users.length == 0){
-            return this.db.run`
+            return this.db`
                 SELECT userid, starttime, endtime
                 FROM booking
                 WHERE starttime>=${startWeek} AND endtime<=${endWeek};`;
         }
-        return this.db.run`
+        return this.db`
                 SELECT userid, starttime, endtime
                 FROM booking
                 WHERE starttime >= ${startWeek} 
