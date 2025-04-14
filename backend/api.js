@@ -1,7 +1,7 @@
 import config from './config.js';
 import express, { query } from 'express';
 import { db, io } from './index.js';
-import { authRO, authRW, validateSession } from './authorization.js';
+import { authAdmin, authRO, authRW, validateSession } from './authorization.js';
 import dayjs from 'dayjs';
 import cookieParser from 'cookie-parser';
 
@@ -214,6 +214,59 @@ router.post('/bookings/:id',authRW, async (req, res) => {
     await db.editBooking(booking.id, inTime, endTime);
     res.sendStatus(200).send();
 });
+
+
+// region tokens
+
+//loggedIn.get('/tokens');
+//loggedIn.post('/tokens/new');
+//loggedIn.delete('/bookings/:id');
+
+/* 
+	Get all tokens
+*/
+router.get("/tokens", authAdmin, async (req, res) => {
+
+	let tokens = await db.getTokens();
+	res.json(tokens);
+
+});
+
+/*
+  Get a token by id
+*/
+router.get("/tokens/:id", authRO, async (req, res) => {
+
+	let token = await db.getToken(req.params.id);
+	res.json(token);
+
+});
+
+/*
+ Generate a token
+*/
+router.post("/tokens/new", authRW, async (req, res) => {
+    
+	await db.generateToken(req.session.isReadOnly, req.session.isAdmin, req.body.description);
+	res.status(200).send()
+})
+
+
+/*
+   Delete a token by id
+*/
+router.delete("/tokens/:id", authRW, async (req, res) => {
+	
+	await db.deleteToken(req.params.id);
+	res.status(200).send();
+
+});
+
+
+
+
+
+
 
 
 // region audits
