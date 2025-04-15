@@ -75,11 +75,14 @@ export class Database {
     }
 
     async getBooking(id){
-        return this.db.run`
-                SELECT *
-                FROM booking
-                WHERE id = ${ id };`;
+        const result = await this.db`
+            SELECT *
+            FROM booking
+            WHERE id = ${ id }
+            LIMIT 1;`;
+        return result[0];
     }
+    
 
     /**
      * 
@@ -87,7 +90,7 @@ export class Database {
      * @returns 
      */
     async deleteBooking(id) {
-        return this.db.run`
+        return this.db`
                 DELETE FROM booking
                 WHERE id = ${ id };`;
     }
@@ -100,7 +103,7 @@ export class Database {
      * @returns 
      */
     async editBooking(id, startTime, endTime) {
-        return this.db.run`
+        return this.db`
                 UPDATE booking SET startTime = ${startTime}, endTime = ${endTime} WHERE id = ${id} RETURNING *;`;
     }
 

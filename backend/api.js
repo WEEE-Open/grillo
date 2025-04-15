@@ -229,26 +229,38 @@ router.post('/bookings/new',authRW, async (req, res) => {
 });
 
 /*
-    Get all bookings
+    Get all bookings of this week or a given week
 */
 router.get('/bookings', authRO, async (req, res) => {
-    let week = parseInt(req.query.week);
-    let year = parseInt(req.query.year);
-    let date;
-    // Controlla se i parametri sono numeri validi
-    if (!isNaN(week) && !isNaN(year)) {
-        date = dayjs().year(year).isoWeek(week);
-    } else if (!isNaN(week) || !isNaN(year)) {
-        res.status(400).json({ error: "Missing week or year" });
-        return;
+    let date=toUnixTimestamp(req.body.dateString);
+	let userId;
+	let startWeek;
+    let endWeek;
+
+    if (!isNaN(date)) {
+		startWeek = date.startOf('isoWeek').unix();
+		endWeek = date.endOf('isoWeek').unix();
     } else {
-        date = dayjs(); // Se mancano entrambi, usa la data attuale
+		startWeek = dayjs().startOf('isoWeek').unix(); 
+		endWeek = dayjs().endOf('isoWeek').unix();  		
     }
+		if(req.body.user == null || req.body.user== undefined){
+			userId=null;
+		}else{
+			userId=req.body.user;
+		}
 
-    let startWeek = date.startOf('isoWeek');
-    let endWeek = date.endOf('isoWeek');
 
-    const bookings = await db.getBookings(startWeek.unix(), endWeek.unix(), users);
+    const bookings = await db.getBookings(startWeek, endWeek, userId);
+    res.json(bookings);
+    
+});
+
+/*
+    Get a booking given the id
+*/
+router.get('/bookings/:id', authRO, async (req, res) => {
+    const bookings = await db.getBooking(req.params.id);
     res.json(bookings);
     
 });
@@ -257,8 +269,9 @@ router.get('/bookings', authRO, async (req, res) => {
     Delete a booking
 */ 
 router.delete('/bookings/:id',authRW, async (req, res) => {
-    let booking = db.getBooking(req.params.id);
-    if (booking.userId != req.user.id && !req.user.isAdmin){
+    let booking = await db.getBooking(req.params.id);
+	console.log(req.session.isAdmin);
+    if (booking.userId != req.session.user.id && !req.session.isAdmin){
         res.status(403).send("Not authorized");
         return;
     }
@@ -269,26 +282,39 @@ router.delete('/bookings/:id',authRW, async (req, res) => {
 /*
     Edit a booking
 */ 
-router.post('/bookings/:id',authRW, async (req, res) => {
-    let booking = db.getBooking(req.params.id);
-    if (booking.userId != req.user.id && !req.user.isAdmin){
+router.post('/bookings/:id', authRW, async (req, res) => {
+    let booking = await db.getBooking(req.params.id);
+
+    // Booking non trovato
+    if (!booking) {
+        res.status(404).send("Booking not found");
+        return;
+    }
+
+    // Autorizzazione
+    if (booking.userid != req.session.user.id && !req.session.isAdmin) {
         res.status(403).send("Not authorized");
         return;
     }
-    var inTime = parseInt(req.body.startTime);
-    var endTime = parseInt(req.body.endTime);
 
-    if(inTime == NaN || dayjs.unix(inTime).isBefore(dayjs())){
-        res.status(400).json({error: "Invalid time"});
+    // Validazione input
+    const inTime = toUnixTimestamp(req.body.startTime);
+    const endTime = toUnixTimestamp(req.body.endTime);
+
+    if (isNaN(inTime) || dayjs.unix(inTime).isBefore(dayjs())) {
+        res.status(400).json({ error: "Invalid time" });
         return;
     }
-    if(endTime != NaN && dayjs.unix(inTime).isAfter(dayjs.unix(endTime))){
-        res.status(400).json({error: "End time is before start time"});
+
+    if (!isNaN(endTime) && dayjs.unix(inTime).isAfter(dayjs.unix(endTime))) {
+        res.status(400).json({ error: "End time is before start time" });
         return;
     }
-    if (endTime == NaN) endTime = null;
-    await db.editBooking(booking.id, inTime, endTime);
-    res.sendStatus(200).send();
+
+    const finalEndTime = isNaN(endTime) ? null : endTime;
+
+    await db.editBooking(booking.id, inTime, finalEndTime);
+    res.sendStatus(200);
 });
 
 
