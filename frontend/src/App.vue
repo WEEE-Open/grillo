@@ -1,35 +1,38 @@
-<script setup>
-// import { RouterLink, RouterView } from 'vue-router'
-import { HomePage } from './components'
-// import Icons from './components/icons/'
-</script>
 <script>
+import { RouterView } from 'vue-router';
+import { useServer } from './stores/server.js';
+import { mapState, mapActions } from 'pinia';
+
 export default {
-  data() {
-    return {
-      test:''
-    }
-  },
-  mounted() {
-    // fetch('/api/v1/ping').then(async res => {
-    //   if(res.status!=200) {
-    //     console.log('errore')
-    //     return;
-    //   }
-    //   res = await res.text()
-    //   this.test = res
-    // })
-    fetch('/api/v1/get_bookings?week=22&year=2024')
-      .then(res => console.log(res))
-  }
+	components: [
+		RouterView
+	],
+	data() {
+		return {
+			ready: false,
+		}
+	},
+	computed: {
+		...mapState(useServer, ['valid', 'blocked']),
+	},
+	methods: {
+		...mapActions(useServer, ['init']),
+	},
+	async mounted() {
+		await this.init();
+		if (this.valid) {
+			this.ready = true;
+		} else if (this.blocked) {
+			// lmao rip
+		} else {
+			window.location.href = '/api/v1/login?return=%2F'; // this endpoint will take care of redirecting us
+		}
+	}
+
 }
 </script>
 
 <template>
-  <HomePage/>
-  <!-- <Icons.IconDocumentation/> --> 
-  {{ test }} 
+	<div v-if="blocked">You blocked foo</div>
+	<RouterView v-if="ready" />
 </template>
-
-<style scoped>
-</style>

@@ -4,7 +4,7 @@ import { db, io } from './index.js';
 import { authAdmin, authRO, authRW, validateSession } from './authorization.js';
 import dayjs from 'dayjs';
 import cookieParser from 'cookie-parser';
-import Time from './time.js';
+import { isSafeReturnUrl, toUnixTimestamp } from './utils.js';
 
 
 const router = express.Router();
@@ -18,15 +18,29 @@ router.get('/ping', async (req, res) => {
 });
 
 if (config.testMode) {
-	router.get('/user/session', async (req, res) => {
+	router.get('/login', async (req, res) => {
 		if (req.query.uid) {
 			let user = await db.getUser(req.query.uid);
 			if (user) {
 				let cookie = await db.generateCookieForUser(user.id, `${req.ip} - ${req.get('User-Agent')}`);
 				res.cookie('session', cookie);
-				res.redirect('/api/v1/user/session'); // prevent reloading from generating a new cookie
+				if (req.cookies.return) {
+					if (!isSafeReturnUrl(req.query.return)) {
+						return res.status(400).send('Bad return URL provided');
+					}
+					res.redirect(decodeURIComponent(req.cookies.return));
+					return;
+				}
+				res.redirect('/api/v1/login'); // prevent reloading from generating a new cookie
 				return;
 			}
+		} else if (req.query.return) {
+			if (!isSafeReturnUrl(req.query.return)) {
+				return res.status(400).send('Bad return URL provided');
+			}
+			res.cookie('return', req.query.return);
+			res.redirect('/api/v1/login');
+			return;
 		}
 		let page = `
 		<!DOCTYPE html>
@@ -49,22 +63,32 @@ if (config.testMode) {
 		res.send(page);
 	});
 } else {
-	router.get('/user/session', async (req, res) => {
+	router.get('/login', async (req, res) => {
 		if (req.session) {
-			res.status(400).send('Already authenticated');
+			if (req.query.return) {
+				return res.redirect(decodeURIComponent(req.query.return))
+			} else {
+				return res.status(400).send('Already authenticated');
+			}
 			return;
 		}
 		if (!req.query.code) {
+			if (req.query.return) {
+				if (!isSafeReturnUrl(req.query.return)) {
+					return res.status(400).send('Bad return URL provided');
+				}
+				res.cookie('return', req.query.return);
+			}
 			res.redirect(config.ssoRedirect);
 			return;
 		}
 		// TODO: validate sso and return a session cookie
+		// !! remember to revalidate return url and then redirect if present
 		res.sendStatus(501); // temp
 	});
 }
 
 router.get('/user', authRW, async (req, res) => {
-	console.log(req.session);
     res.json(req.session);
 });
 
@@ -108,17 +132,6 @@ router.post('/lab/ring', authRW, async (req, res) => {
 		return;
 	}
 });
-
-function toUnixTimestamp(dateString) {
-    // Dividere la stringa in giorno, mese, anno, ore e minuti
-    const [day, month, year, hours, minutes] = dateString.match(/\d+/g).map(Number);
-
-    // Riorganizzare la data nel formato ISO accettato da dayjs: "YYYY-MM-DDTHH:mm"
-    const formattedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-
-    // Convertire in timestamp UNIX
-    return dayjs(formattedDate).unix();
-}
 
 // region events
 
