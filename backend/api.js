@@ -4,6 +4,7 @@ import { db, io } from './index.js';
 import { authAdmin, authRO, authRW, validateSession } from './authorization.js';
 import dayjs from 'dayjs';
 import cookieParser from 'cookie-parser';
+import Time from './time.js';
 
 
 const router = express.Router();
@@ -108,30 +109,73 @@ router.post('/lab/ring', authRW, async (req, res) => {
 	}
 });
 
-// router.get('/bookings'); done
-// router.post('/bookings/new'); done
-// router.post('/bookings/:id');   //to edit a booking
-// router.delete('/bookings/:id');
+function toUnixTimestamp(dateString) {
+    // Dividere la stringa in giorno, mese, anno, ore e minuti
+    const [day, month, year, hours, minutes] = dateString.match(/\d+/g).map(Number);
 
-//router.get('/audits');
+    // Riorganizzare la data nel formato ISO accettato da dayjs: "YYYY-MM-DDTHH:mm"
+    const formattedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 
-/*ggedIn.get('/stats');
+    // Convertire in timestamp UNIX
+    return dayjs(formattedDate).unix();
+}
 
-loggedIn.get('/notifications/new');
-loggedIn.post('/notification/:id');   //to edit a notification
-loggedIn.delete('/notification/:id');
+// region events
 
-loggedIn.post('/notification/:id/read');
-loggedIn.post('/notification/:id/delivered');
+router.get('/events', authRW,async (req, res) => {
+	const event = await db.getEvents();
 
-loggedIn.get('/tokens');
-loggedIn.post('/tokens/new');
-loggedIn.delete('/bookings/:id');
+	if (!event) {
+		return res.status(500).json({ error: "No events found" });
+	}
 
-loggedIn.get('/events');
-loggedIn.post('/events/new');
-loggedIn.post('/events/:id');
-loggedIn.delete('/events/:id');*/
+	res.status(200).json(event);
+});
+
+router.post('/events/new',authAdmin, async (req, res) => {
+	const exevent = await db.getEvent(req.body.id);
+	console.log("asd post new");
+	if(exevent){
+		return res.status(400).json({ error: "L'ID della location esiste già" });
+	}
+
+	let event = await db.addEvent(req.body.id,toUnixTimestamp(req.body.startTime),toUnixTimestamp(req.body.endTime), req.body.title, req.body.description);
+	res.status(200).json(event);
+});
+
+router.get('/events/:id',authAdmin,async (req, res) => {
+	console.log("asd get events id");
+	let event = await db.getEvent(req.params.id);
+	if (!event) {
+		return res.status(500).json({ error: "No events found" });
+	}
+	res.status(200).json(event);
+});
+
+router.post('/events/:id',authAdmin,async (req, res) => {
+	console.log("asd eventi id post");
+	let event = await db.getEvent(req.params.id);
+	
+	var startTime = toUnixTimestamp(req.body.startTime);
+	var endTime = toUnixTimestamp(req.body.endTime);
+	if (endTime == NaN) endTime = null;
+	let editedEvent = await db.editEvent(event.id, startTime, endTime, req.body.title, req.body.description);
+	res.status(200).json(editedEvent);
+});
+
+
+router.delete('/events/:id',authAdmin, async (req,res)=> {
+	const eventId = req.params.id;
+    const deletedEvent = await db.deleteEvent(eventId);
+
+        if (!deletedEvent) {
+            return res.status(404).json({ error: "Event not found" });
+        }
+
+        res.status(200).json("Deleted :)");
+});
+
+// #ENDREGION
 
 // #region bookings
 
@@ -381,5 +425,45 @@ router.get('/audits',authRO, async (req, res) => {
 
 // #endregion
 
+// region locations
+
+router.get('/locations',authRO,async (req, res) =>{
+	const locations = await db.getLocations();
+	if (!locations) {
+		return res.status(500).json({ error: "No locations found" });
+	}
+
+	res.status(200).json(locations);
+});
+
+router.post('/locations/new',authAdmin,async (req, res) =>{
+	const existingLocation = await db.getLocation(req.body.id);
+	console.log("asd");
+	if (existingLocation) {
+		return res.status(400).json({ error: "L'ID della location esiste già" });
+	}
+
+	let location = await db.addLocation(req.body.id, req.body.name);
+    res.status(200).json(location);
+});
+
+router.patch('/locations/:id',authAdmin,async (req, res) =>{
+	let locationsid = req.params.id;
+	let location = db.getLocation(locationsid);
+	if (!location){
+		res.status(400).json({error: "Invalid location id"});
+        return;
+	}
+	
+	let name = req.body.name;
+	let edLocation = await db.editLocation(locationsid, name);
+	res.status(200).json(edLocation); 
+});
+
+router.delete('/locations/:id',authAdmin,async (req, res) =>{
+	res.status(501).send();
+});
+
+// #endregion
 
 export default router;
