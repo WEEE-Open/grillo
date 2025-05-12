@@ -40,22 +40,22 @@ export default {
 	<v-app>
 		<v-app-bar flat v-if="ready && !blocked && initiated">
 			<v-container class="mx-auto d-flex align-center justify-center ga-10" :max-width="1200">
-				<RouterLink to="/" class="d-block ml-10"
-					><v-img
-						src="/weee.png"
-						title="logo"
-						alt="home"
-						:height="36"
-						:min-width="195"
-						:max-width="300"
-				/></RouterLink>
 				<v-tabs
 					:model-value="$route.name"
 					@update:model-value="$router.push({ name: $event })"
 					color="primary"
 					:mandatory="false"
 				>
+					<v-tab value="home" to="/"><v-img
+							src="/weee.png"
+							title="logo"
+							alt="home"
+							:height="36"
+							:min-width="195"
+							:max-width="300"
+					/></v-tab>
 					<v-tab value="schedule" to="/schedule">Schedule</v-tab>
+					<v-tab value="logs" to="/logs">Logs</v-tab>
 					<v-tab value="settings" to="/settings">Settings</v-tab>
 				</v-tabs>
 				<v-spacer></v-spacer>
@@ -104,7 +104,7 @@ export default {
 							title="Tarallo"
 							subtitle="Tuttofare Assistente il Riuso di Aggeggi Logori e Localmente Opprimenti (aka L'inventario Opportuno)"
 							append-icon="mdi-chevron-right"
-							to="https://tarallo.weeeopen.it/"
+							href="https://tarallo.weeeopen.it/"
 						/>
 						<v-card
 							prepend-icon="mdi-account-outline"
@@ -112,7 +112,7 @@ export default {
 							title="Crauto"
 							subtitle="Creatore e Rimuovitore Autogestito di Utenti che Tutto Offre"
 							append-icon="mdi-chevron-right"
-							to="https://tarallo.weeeopen.it/"
+							href="https://tarallo.weeeopen.it/"
 							class="mt-5"
 						/>
 						<v-card
@@ -121,7 +121,7 @@ export default {
 							title="Cloud"
 							subtitle="Cumulatore Ludico Ostinatamente Utile di Dati"
 							append-icon="mdi-chevron-right"
-							to="https://tarallo.weeeopen.it/"
+							href="https://tarallo.weeeopen.it/"
 							class="mt-5"
 						/>
 						<v-card
@@ -130,7 +130,7 @@ export default {
 							title="Wiki"
 							subtitle="Wisdom Integrata per la Konoscenza Illimitata"
 							append-icon="mdi-chevron-right"
-							to="https://tarallo.weeeopen.it/"
+							href="https://tarallo.weeeopen.it/"
 							class="mt-5"
 						/>
 					</v-card>

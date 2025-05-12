@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { h } from "vue";
+import HomeView from "@/views/HomeView.vue";
 
 const router = createRouter({
 	history: createWebHistory(import.meta.env.BASE_URL),
@@ -7,17 +8,39 @@ const router = createRouter({
 		{
 			path: "/",
 			name: "home",
-			component: h("div"), // this is just a dummy, will never be displayed
+			component: HomeView
 		},
 		{
 			path: "/schedule",
 			name: "schedule",
-			component: h("div"), // this is just a dummy, will never be displayed
+			component: () => import('../views/ScheduleView.vue'),
+		},
+		{
+			path: "/logs",
+			name: "logs",
+			component: () => import('../views/LogsView.vue'),
 		},
 		{
 			path: "/settings",
-			name: "settings",
-			component: h("div"), // this is just a dummy, will never be displayed
+			name: "settings-parent",
+			component: () => import('../views/SettingsView.vue'),
+			children: [
+				{
+					path: '',
+					name: 'settings',
+					component: h("div"), // this is just a dummy, will never be displayed
+				},
+				{
+					path: 'locations',
+					name: 'locations',
+					component: () => import('../views/SettingsTabs/LocationsView.vue'),
+				},
+				{
+					path: 'tokens',
+					name: 'tokens',
+					component: () => import('../views/SettingsTabs/TokensView.vue'),
+				}
+			]
 		},
 	],
 });
