@@ -3,7 +3,8 @@
 	"version": "1.0.0",
 	"description": "A tool to manage presence in lab",
 	"devDependencies": {
-		"concurrently": "^8.0.1"
+		"concurrently": "^8.0.1",
+		"prettier": "^3.5.3"
 	},
 	"workspaces": [
 		"frontend",
@@ -18,9 +19,9 @@
 		"prod": "npm run frontend:prod && npm run backend:prod",
 		"docker:up": "docker compose up -d",
 		"docker:down": "docker compose down",
-		"docker:rebuild": "docker compose down && docker compose build --no-cache && docker compose up -d"
+		"docker:rebuild": "docker compose down && docker compose build --no-cache && docker compose up -d",
+		"format": "prettier --write ."
 	},
 	"author": "WEEE Open",
-	"license": "MIT",
-	"dependencies": {}
+	"license": "MIT"
 }

@@ -2,12 +2,12 @@
 
 The future of lab booking in one easy to use web app.
 
-
 ## Running Development Mode
 
 Development mode runs the backend with nodemon, so that as soon as you save it relaunches, and also starts up the vite development server and proxies trough the API.
 
 ### Bare Metal
+
 1. Clone the repo
 2. Run `npm i`
 3. Copy the `config.example.js` as `config.js` and config if needed (if you edit the server port make sure to also change it in the `frontend/vite.config.js` file)
@@ -16,6 +16,7 @@ Development mode runs the backend with nodemon, so that as soon as you save it r
 6. Open the site on `localhost:5173`
 
 ### Docker
+
 1. Clone the repo
 2. Copy the `config.example.js` as `config.js` and config if needed (if you edit the server port make sure to also change it in the `frontend/vite.config.js` file)
 3. Create a `.env` file and enter `DEVELOPMENT=true` and optionally `ADDJUNKDATA=true` to add some demo data to the database as well
@@ -27,6 +28,7 @@ Development mode runs the backend with nodemon, so that as soon as you save it r
 Production mode will automatically compile the frontend, and start up the backend server while statically hosting the frontend built files.
 
 ### Bare Metal
+
 1. Clone the repo
 2. Run `npm i`
 3. Copy the `config.example.js` as `config.js` and config if needed
@@ -35,6 +37,7 @@ Production mode will automatically compile the frontend, and start up the backen
 6. Open the site on `localhost:3000`
 
 ### Docker
+
 1. Clone the repo
 2. Copy the `config.example.js` as `config.js` and config if needed (if you edit the server port make sure to also change it in the `frontend/vite.config.js` file)
 3. Create a `.env` file and enter `DEVELOPMENT=false`
@@ -51,6 +54,8 @@ The WEEETofono is a daemon that can run on any machine that is always on and con
 4. Run `npm start` to start the daemon
 5. It is recommended to use a process manager like `pm2` to keep the daemon running, you can install it with `npm i -g pm2` and then run `pm2 start index.js --name weeetofono` and then `pm2 save` to make sure it starts on boot and `pm2 startup` to make sure it starts on boot
 
-
 For more options look into the `package.json` file
 
+## Credits
+
+- Backtround photo by [Random Thinking](https://unsplash.com/@randomthinking?utm_content=creditCopyText&utm_medium=referral&utm_source=unsplash) on [Unsplash](https://unsplash.com/photos/a-close-up-of-a-computer-mother-board-iWLZV7cXHRE?utm_content=creditCopyText&utm_medium=referral&utm_source=unsplash)

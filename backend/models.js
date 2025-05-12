@@ -1,30 +1,30 @@
-export class User{
-    constructor(opt){
-        this.id = opt.id;
+export class User {
+	constructor(opt) {
+		this.id = opt.id;
 		this.uid = opt.uid;
-        this.username = opt.username;
-        this.name = opt.name;
-        this.surname = opt.surname;
-        this.printableName = opt.printableName;
-        this.seconds = opt.seconds;
-        this.inlab = opt.inlab;
-        this.hasKey = opt.hasKey;
-        this.groups = opt.groups;
-    }
+		this.username = opt.username;
+		this.name = opt.name;
+		this.surname = opt.surname;
+		this.printableName = opt.printableName;
+		this.seconds = opt.seconds;
+		this.inlab = opt.inlab;
+		this.hasKey = opt.hasKey;
+		this.groups = opt.groups;
+	}
 
-    get isAdmin(){
-        if (this.groups === undefined){
-            return false;
-        }
-        return this.groups.includes('soviet');
-    }
+	get isAdmin() {
+		if (this.groups === undefined) {
+			return false;
+		}
+		return this.groups.includes("soviet");
+	}
 }
 
 export class Session {
 	/**
-	 * 
-	 * @param {'user'|'api'} type 
-	 * @param {User|Api} entity 
+	 *
+	 * @param {'user'|'api'} type
+	 * @param {User|Api} entity
 	 */
 	constructor(type, entity) {
 		/**
@@ -45,11 +45,11 @@ export class Session {
 	}
 
 	get isUser() {
-		return this.type == 'user';
+		return this.type == "user";
 	}
 
 	get isApi() {
-		return this.type == 'api';
+		return this.type == "api";
 	}
 
 	get isReadOnly() {
@@ -63,10 +63,10 @@ export class Session {
 	}
 }
 
-export class Booking{
-    constructor(userId, time, hasKey){
-        this.userId = userId;
-        this.time = time;
-        this.hasKey = hasKey;
-    }
+export class Booking {
+	constructor(userId, time, hasKey) {
+		this.userId = userId;
+		this.time = time;
+		this.hasKey = hasKey;
+	}
 }

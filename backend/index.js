@@ -1,8 +1,8 @@
 import config from "./config.js";
 
-import http from 'http';
+import http from "http";
 import express from "express";
-import { Server } from 'socket.io';
+import { Server } from "socket.io";
 import yargs from "yargs";
 
 export const argv = yargs(process.argv)
@@ -30,9 +30,10 @@ app.use(express.json());
 
 app.use("/api/v1/", api);
 
-io.use(async (socket, next) => { // putting this here (for now) because i wans't sure where else to put it
+io.use(async (socket, next) => {
+	// putting this here (for now) because i wans't sure where else to put it
 	const token = socket.handshake.auth.token;
-	if (token && await db.validateApiToken(token) != null) {
+	if (token && (await db.validateApiToken(token)) != null) {
 		return next();
 	}
 	next(new Error("Authentication error"));
