@@ -6,7 +6,8 @@ export const useServer = defineStore("server", {
 		initiated: false,
 		valid: false,
 		blocked: false,
-		username: null,
+		session: null,
+		servicesLinks: [],
 	}),
 	actions: {
 		makeRequest(method, path, body = null) {
@@ -26,6 +27,7 @@ export const useServer = defineStore("server", {
 		},
 		async init() {
 			await this.verifySession();
+			await this.loadConfig();
 			this.initiated = true;
 		},
 		async verifySession() {
@@ -34,7 +36,7 @@ export const useServer = defineStore("server", {
 			let body = await response.json();
 			if (response.ok) {
 				// user logged in
-				this.username = body.username;
+				this.session = body;
 				this.valid = true;
 				this.blocked = false;
 				this.initiated = true;
@@ -60,5 +62,24 @@ export const useServer = defineStore("server", {
 				throw body;
 			}
 		},
+		async loadConfig() {
+			let [request, abort] = this.makeRequest("GET", "/config");
+			let response = await request;
+			if (response.ok) {
+				let body = await response.json();
+				this.servicesLinks = body.servicesLinks;
+			} else {
+				// TODO: display some kind of error
+			}
+		},
+		async ring() {
+			let [request, abort] = this.makeRequest("POST", "/lab/ring");
+			let response = await request;
+			if (response.ok) {
+				return true;
+			} else {
+				// TODO: display some kind of error
+			}
+		}
 	},
 });

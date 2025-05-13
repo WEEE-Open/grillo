@@ -61,6 +61,16 @@ export class Session {
 		if (this.isUser) return this.user.isAdmin;
 		else if (this.isApi) return this.api.admin;
 	}
+
+	toJSON() {
+		return {
+			...this,
+			isUser: this.isUser,
+			isApi: this.isApi,
+			isReadOnly: this.isReadOnly,
+			isAdmin: this.isAdmin,
+		};
+	}
 }
 
 export class Booking {

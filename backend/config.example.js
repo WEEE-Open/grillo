@@ -19,6 +19,15 @@ const config = {
 			"https://sso.example.com/login?redirect=grillo.example.com/login&response_type=code",
 		codeValidation: "https://sso.example.com/validate?code=${code}",
 	},
+	servicesLinks: [
+		//{
+		//	link: "",
+		//	icon: "", // from https://pictogrammers.com/library/mdi/ prefixed with mdi-
+		//	title: "",
+		//	subtitle: "",
+		//},
+		// [...]
+	]
 };
 
 export default config;

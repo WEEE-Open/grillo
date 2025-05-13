@@ -116,6 +116,12 @@ router.delete("/session", authRW, async (req, res) => {
 	res.sendStatus(204);
 });
 
+router.get("/config", authRO, (req, res) => {
+	res.json({
+		servicesLinks: config.servicesLinks,
+	});
+})
+
 router.get("/lab/info", authRO, (req, res) => {
 	/// ecc
 
@@ -129,10 +135,6 @@ router.get("/lab/info", authRO, (req, res) => {
 //router.post('/lab/in');
 //router.post('/lab/out');
 router.post("/lab/ring", authRW, async (req, res) => {
-	if (req.session.isReadOnly) {
-		res.status(403).send("Forbidden");
-		return;
-	}
 	try {
 		await io.timeout(10000).emitWithAck("ring"); // in the future perhaps we can add a parameter to specify which bell to ring
 		res.sendStatus(204);

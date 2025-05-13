@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from "vue-router";
-import { h } from "vue";
-import HomeView from "@/views/HomeView.vue";
+import EmptyView from "@/views/EmptyView.vue";
 
 const router = createRouter({
 	history: createWebHistory(import.meta.env.BASE_URL),
@@ -8,7 +7,7 @@ const router = createRouter({
 		{
 			path: "/",
 			name: "home",
-			component: HomeView
+			component: EmptyView // the base app component already contains the home page
 		},
 		{
 			path: "/schedule",
@@ -21,6 +20,11 @@ const router = createRouter({
 			component: () => import('../views/LogsView.vue'),
 		},
 		{
+			path: "/events",
+			name: "events",
+			component: () => import('../views/EventsView.vue'),
+		},
+		{
 			path: "/settings",
 			name: "settings-parent",
 			component: () => import('../views/SettingsView.vue'),
@@ -28,7 +32,7 @@ const router = createRouter({
 				{
 					path: '',
 					name: 'settings',
-					component: h("div"), // this is just a dummy, will never be displayed
+					component: EmptyView,
 				},
 				{
 					path: 'locations',
