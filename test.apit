@@ -1,0 +1,36 @@
+{
+  "url": "http://localhost:3000/api/v1/tokens/new",
+  "params": {},
+  "paramsArray": [],
+  "headers": {
+    "Cookie": "session=y342xjlombgt9r1qv3yroh",
+    "Content-Type": "application/json"
+  },
+  "headersArray": [
+    [
+      "a6772c8c-f547-4264-9ee1-2755effa3499",
+      "Cookie",
+      "session=y342xjlombgt9r1qv3yroh",
+      true,
+      "STRING"
+    ],
+    [
+      "2be4f869-88e4-4ddf-af84-98931a269a5f",
+      "Content-Type",
+      "application/json",
+      true,
+      "STRING"
+    ]
+  ],
+  "method": "post",
+  "backup": {
+    "bodyType": "raw",
+    "data": {
+      "description": "Ciao!"
+    },
+    "bodySubType": "json",
+    "rawData": "{\n  description: \"Sono una descrizione\"\n}\n ",
+    "dataArray": []
+  },
+  "data": {}
+}
