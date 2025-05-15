@@ -1,5 +1,5 @@
 {
-  "url": "http://localhost:3000/api/v1/tokens/new",
+  "url": "http://localhost:3000/api/v1/tokens",
   "params": {},
   "paramsArray": [],
   "headers": {
@@ -22,7 +22,7 @@
       "STRING"
     ]
   ],
-  "method": "post",
+  "method": "get",
   "backup": {
     "bodyType": "raw",
     "data": {
