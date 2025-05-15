@@ -117,25 +117,30 @@ export const useServer = defineStore("server", {
 			}
 		},
 		async deleteToken(token){
-			let [request, abort] = this.makeRequest("DELETE", `/tokens:${token.id}`,);
+			let [request, abort] = this.makeRequest("DELETE", `/tokens/${token.id}`);
+			
 			let response = await request;
 			if(response.ok){
 				return true; 
 			}
 			else{
 				if (response.status === 401) {
-					throw new Error("Not autheticated");
+					throw new Error("Not authenticated");
 				} else if (response.status === 403) {
 					throw new Error("No permission");
 				} else {
-					throw new Error("Error occured during token deletion");
+					throw new Error("Error occurred during token deletion");
 				}
-				//da finire
 			}
 		},
 		
 		async createToken(token){
-			let [request, abort] = this.makeRequest("POST", "/tokens/new", token.description);
+			
+			let [request, abort] = this.makeRequest("POST", "/tokens/new", {
+				description: token.description,
+				isReadOnly: token.readonly,
+				isAdmin: token.admin
+			});
 			
 			let response = await request;
 			if(response.ok){
@@ -149,8 +154,7 @@ export const useServer = defineStore("server", {
 				} else {
 					throw new Error("Error occured during token creation");
 				}
-				//da finire
 			}
-		},
+},
 	},
 });
