@@ -56,6 +56,10 @@ export default {
 		async saveToken() {
 			try {
 				let result = await this.createToken(this.record);
+				if (result) {
+					this.dialog = false; //close dialog
+					this.fetchTokens(); //check if there is a better method lolz
+				}
 			} catch (error) {
 				console.error("Token creation failed:", error);
 			}
@@ -63,7 +67,10 @@ export default {
 
 		async cancelToken(item) {
 			try {
-				let result = await this.deleteToken(this.record);
+				let result = await this.deleteToken(item);
+				if (result) {
+					this.fetchTokens(); //check if there is a better method lolz
+				}
 			} catch (error) {
 				console.error("Token deletion failed:", error);
 			}
