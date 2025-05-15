@@ -120,7 +120,7 @@ router.get("/config", authRO, (req, res) => {
 	res.json({
 		servicesLinks: config.servicesLinks,
 	});
-})
+});
 
 router.get("/lab/info", authRO, (req, res) => {
 	/// ecc

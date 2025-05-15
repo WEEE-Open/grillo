@@ -80,6 +80,6 @@ export const useServer = defineStore("server", {
 			} else {
 				// TODO: display some kind of error
 			}
-		}
+		},
 	},
 });

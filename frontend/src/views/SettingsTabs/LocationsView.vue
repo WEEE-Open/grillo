@@ -1,8 +1,6 @@
 <script>
 export default {
-    //
-}
+	//
+};
 </script>
-<template>
-    locations
-</template>
+<template>locations</template>

@@ -1,8 +1,6 @@
 <script>
 export default {
-    //
-}
+	//
+};
 </script>
-<template>
-    tokens
-</template>
+<template>tokens</template>
