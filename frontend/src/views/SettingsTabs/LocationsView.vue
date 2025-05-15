@@ -57,4 +57,26 @@ export default {
 			</v-btn>
 		</template>
 	</v-data-table>
+
+	<v-dialog v-model="dialog" max-width="600">
+		<v-card>
+			<v-card-title>{{ isEditing ? "Edit Location" : "Add Location" }}</v-card-title>
+			<v-card-subtitle>
+				{{ isEditing ? "Update token information" : "Create a new token" }}
+			</v-card-subtitle>
+
+			<v-card-text>
+				<v-text-field label="Hash" v-model="record.hash"></v-text-field>
+				<v-text-field label="Description" v-model="record.description"></v-text-field>
+				<v-checkbox label="Read-only" v-model="record.readonly"></v-checkbox>
+				<v-checkbox label="Admin" v-model="record.admin"></v-checkbox>
+			</v-card-text>
+
+			<v-card-actions>
+				<v-btn variant="text" @click="dialog = false">Cancel</v-btn>
+				<v-spacer></v-spacer>
+				<v-btn color="primary" @click="save">Save</v-btn>
+			</v-card-actions>
+		</v-card>
+	</v-dialog>
 </template>

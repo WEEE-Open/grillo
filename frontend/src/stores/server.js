@@ -113,5 +113,39 @@ export const useServer = defineStore("server", {
 				//da finire
 			}
 		},
+		async deleteToken(token) {
+			let [request, abort] = this.makeRequest("DELETE", `/tokens:${token.id}`);
+			let response = await request;
+			if (response.ok) {
+				return true;
+			} else {
+				if (response.status === 401) {
+					throw new Error("Not autheticated");
+				} else if (response.status === 403) {
+					throw new Error("No permission");
+				} else {
+					throw new Error("Error occured during token deletion");
+				}
+				//da finire
+			}
+		},
+
+		async createToken(token) {
+			let [request, abort] = this.makeRequest("POST", "/tokens/new", token.description);
+
+			let response = await request;
+			if (response.ok) {
+				return true;
+			} else {
+				if (response.status === 401) {
+					throw new Error("Not autheticated");
+				} else if (response.status === 403) {
+					throw new Error("No permission");
+				} else {
+					throw new Error("Error occured during token creation");
+				}
+				//da finire
+			}
+		},
 	},
 });
