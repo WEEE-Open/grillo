@@ -477,7 +477,8 @@ router.patch("/locations/:id", authAdmin, async (req, res) => {
 });
 
 router.delete("/locations/:id", authAdmin, async (req, res) => {
-	res.status(501).send();
+	await db.deleteLocation(req.params.id);
+	res.status(200).send();
 });
 
 // #endregion

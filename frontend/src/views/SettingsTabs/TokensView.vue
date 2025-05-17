@@ -14,12 +14,12 @@ export default {
 				description: "",
 			},
 			headers: [
-				{ text: "ID", value: "id" },
-				{ text: "Hash", value: "hash" },
-				{ text: "Read-only", value: "readonly" },
-				{ text: "Admin", value: "admin" },
-				{ text: "Description", value: "description" },
-				{ text: "Actions", value: "actions", sortable: false },
+				{ text: "ID", value: "id", width: "15%" },
+				{ text: "Hash", value: "hash", width: "20%" },
+				{ text: "Read-only", value: "readonly", width: "10%" },
+				{ text: "Admin", value: "admin", width: "10%" },
+				{ text: "Description", value: "description", width: "35%" },
+				{ text: "Actions", value: "actions", sortable: false, width: "10%" },
 			],
 		};
 	},
@@ -65,7 +65,7 @@ export default {
 			}
 		},
 
-		async cancelToken(item) {
+		async removeToken(item) {
 			try {
 				let result = await this.deleteToken(item);
 				if (result) {
@@ -89,6 +89,8 @@ export default {
 			:items="tokens"
 			:loading="loading"
 			loading-text="Loading tokens..."
+			fixed-header
+			height="400px"
 		>
 			<template v-slot:top>
 				<v-toolbar flat>
@@ -112,7 +114,7 @@ export default {
 			</template>
 
 			<template v-slot:item.actions="{ item }">
-				<v-btn icon @click="cancelToken(item)">
+				<v-btn icon @click="removeToken(item)">
 					<v-icon>mdi-delete</v-icon>
 				</v-btn>
 			</template>

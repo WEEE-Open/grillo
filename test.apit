@@ -1,5 +1,5 @@
 {
-  "url": "http://localhost:3000/api/v1/tokens",
+  "url": "http://localhost:3000/api/v1/locations/new",
   "params": {},
   "paramsArray": [],
   "headers": {
@@ -15,22 +15,23 @@
       "STRING"
     ],
     [
-      "2be4f869-88e4-4ddf-af84-98931a269a5f",
+      "c33b4619-473b-4bc8-8d54-287e36940470",
       "Content-Type",
       "application/json",
       true,
       "STRING"
     ]
   ],
-  "method": "get",
+  "method": "post",
   "backup": {
     "bodyType": "raw",
-    "data": {
-      "description": "Ciao!"
-    },
+    "data": {},
     "bodySubType": "json",
-    "rawData": "{\n  description: \"Sono una descrizione\"\n}\n ",
+    "rawData": "{\n  \"id\": \"L1\",\n  \"name\": \"Location1\"\n}\n ",
     "dataArray": []
   },
-  "data": {}
+  "data": {
+    "id": "L1",
+    "name": "Location1"
+  }
 }
