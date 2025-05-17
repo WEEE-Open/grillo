@@ -95,7 +95,7 @@ export const useServer = defineStore("server", {
 					throw new Error("No permission");
 				} else {
 					throw new Error("Error occured during tokens load");
-				}
+				} 
 			}
 			//da finire
 		},
@@ -107,14 +107,13 @@ export const useServer = defineStore("server", {
 			}
 			else{
 				if (response.status === 401) {
-					throw new Error("Not autheticated");
+					throw new Error("Not authenticated");
 				} else if (response.status === 403) {
 					throw new Error("No permission");
 				} else {
-					throw new Error("Error occured during locations load");
+					throw new Error("Error occurred during locations load");
 				}
-				//da finire
-			}
+			} //Da controllare tutti gli errori
 		},
 		async deleteToken(token){
 			let [request, abort] = this.makeRequest("DELETE", `/tokens/${token.id}`);
@@ -131,7 +130,7 @@ export const useServer = defineStore("server", {
 				} else {
 					throw new Error("Error occurred during token deletion");
 				}
-			}
+			} //Da controllare tutti gli errori
 		},
 		
 		async createToken(token){
@@ -154,7 +153,68 @@ export const useServer = defineStore("server", {
 				} else {
 					throw new Error("Error occured during token creation");
 				}
+				//Da controllare tutti gli errori
 			}
-},
+		},
+		async createLocation(location){
+			let [request, abort] = this.makeRequest("POST", "/locations/new", {
+				id: location.id,
+				name: location.name
+			});
+			
+			let response = await request;
+			if(response.ok){
+				return true;
+			}
+			else{
+				if (response.status === 401) {
+					throw new Error("Not authenticated");
+				} else if (response.status === 403) {
+					throw new Error("No permission");
+				} else if (response.status === 400){
+					throw new Error("Already exist");
+				} else {
+					throw new Error("Error occurred during location creation");
+				}
+				//Da controllare tutti gli errori
+			}
+		},
+		async updateLocation(location){
+			let [request, abort] = this.makeRequest("PATCH", `/locations/${location.id}`, {
+				name: location.name
+			});
+			
+			let response = await request;
+			if(response.ok){
+				return true;
+			}
+			else{
+				if (response.status === 401) {
+					throw new Error("Not authenticated");
+				} else if (response.status === 403) {
+					throw new Error("No permission");
+				} else {
+					throw new Error("Error occurred during location update");
+				}
+			} //Da controllare tutti gli errori
+		},
+		async deleteLocation(location){
+			let [request, abort] = this.makeRequest("DELETE", `/locations/${location.id}`);
+			
+			let response = await request;
+			if(response.ok){
+				return true;
+			}
+			else{
+				if (response.status === 401) {
+					throw new Error("Not authenticated");
+				} else if (response.status === 403) {
+					throw new Error("No permission");
+				} 
+				else {
+					throw new Error("Error occurred during location deletion");
+				}
+			} //Da controllare tutti gli errori
+		},
 	},
 });
