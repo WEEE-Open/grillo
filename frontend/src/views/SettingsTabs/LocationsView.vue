@@ -2,6 +2,9 @@
 import { useServer } from "../../stores/server";
 import { mapState, mapActions } from "pinia";
 
+const NAME_MIN_LENGTH = 2
+const NAME_MAX_LENGTH = 25
+
 export default {
     data() {
         return {
@@ -17,11 +20,20 @@ export default {
                { title: 'ID', key: 'id', align: 'start', width: '30%' },
                { title: 'Name', key: 'name', align: 'start', width: '50%' },
                { title: 'Actions', key: 'actions', align: 'end', width: '20%', sortable: false }
-            ]
+            ],
+            
         }
     },
     computed: {
-        //
+        maxLength() {
+            return NAME_MAX_LENGTH //return the const usable in the template
+        },   
+        inputRules() {
+            if (!this.record.name) return ['Name is required']
+            if (this.record.name.length > NAME_MAX_LENGTH) return [`Name must be less than ${NAME_MAX_LENGTH} characters`]
+            if (this.record.name.length < NAME_MIN_LENGTH) return [`Name must be at least ${NAME_MIN_LENGTH} characters`]
+            return []
+        }
     },
     methods: {
         ...mapActions(useServer, ['getLocations', 'createLocation', 'updateLocation', 'deleteLocation']),
@@ -32,12 +44,20 @@ export default {
                 console.error('Locations fetch failed:', error);
             }
         },
+        generateLocationId(name) {
+            return name.toLowerCase()
+                      .trim()
+                      .replace(/\s+/g, '-') //replace space with -
+                      .replace(/[^a-z0-9-]/g, ''); //no special char allowed, keeps only char and numberszsz
+        },
+
         async saveLocation() {
             try {
                 let result;
                 if (this.isEditing) {
                     result = await this.updateLocation(this.record);
                 } else {
+                    this.record.id = this.generateLocationId(this.record.name);
                     result = await this.createLocation(this.record);
                 }
                 
@@ -136,8 +156,13 @@ export default {
 				<v-checkbox label="Admin" v-model="record.admin"></v-checkbox>
 			</v-card-text>
       <v-card-text>
-         <v-text-field label="ID" v-model="record.id"></v-text-field>
-        <v-text-field label="Name" v-model="record.name"></v-text-field>
+        <v-text-field label="Name" 
+                      v-model="record.name" 
+                      :counter="maxLength"
+                      :rules="inputRules"
+                      
+                            
+                    ></v-text-field>
       </v-card-text>
 
 			<v-card-actions>
@@ -150,7 +175,7 @@ export default {
       <v-card-actions>
         <v-btn variant="text" @click="dialog = false">Cancel</v-btn>
         <v-spacer></v-spacer>
-        <v-btn color="primary" @click="saveLocation">Save</v-btn>
+        <v-btn color="primary" @click="saveLocation" :disabled="inputRules.length > 0">Save</v-btn> <!-- input valid return [] -->
       </v-card-actions>
     </v-card>
   </v-dialog>
