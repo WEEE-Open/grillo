@@ -11,9 +11,9 @@ export default {
 </script>
 <template>
     <v-main>
-        <v-container>
+        <v-container fluid>
             <v-row>
-                <v-col cols="3">
+                <v-col cols="auto">
                     <v-tabs
                         v-model="$route.name"
                         @update:model-value="$router.push({ name: $event })"
