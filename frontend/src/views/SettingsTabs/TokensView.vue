@@ -3,6 +3,9 @@
 import { useServer } from '../../stores/server'
 import { mapActions } from 'pinia'
 
+const NAME_MIN_LENGTH = 2
+const NAME_MAX_LENGTH = 50
+
 export default {
   data() {
     return {
@@ -21,9 +24,22 @@ export default {
         { text: 'Admin', value: 'admin', width: '10%' },
         { text: 'Description', value: 'description', width: '35%' },
         { text: 'Actions', value: 'actions', sortable: false, width: '10%' }
-      ]
+      ],
+      
     }
   },
+  computed: {
+        maxLength() {
+            return NAME_MAX_LENGTH //return the const usable in the template
+        },   
+        inputRules() {
+            if (!this.record.description) return ['Description is required']
+            if (this.record.description.length > NAME_MAX_LENGTH) return [`Description must be less than ${NAME_MAX_LENGTH} characters`]
+            if (this.record.description.length < NAME_MIN_LENGTH) return [`Description must be at least ${NAME_MIN_LENGTH} characters`]
+            return []
+        },
+        
+    },
   methods: {
     ...mapActions(useServer, ['getTokens', 'createToken', 'deleteToken']),
 
@@ -80,6 +96,8 @@ export default {
         }
     }
   },
+
+  
   mounted() {
     this.fetchTokens();
   }
@@ -133,7 +151,11 @@ export default {
 
       <v-card-text>
 
-        <v-text-field label="Description" v-model="record.description"></v-text-field>
+        <v-text-field label="Description"
+                      v-model="record.description"
+                      :counter="maxLength"
+                      :rules="inputRules"
+                      ></v-text-field>
         <v-checkbox label="Read-only" v-model="record.readonly"></v-checkbox>
         <v-checkbox label="Admin" v-model="record.admin"></v-checkbox>
         
@@ -142,7 +164,7 @@ export default {
       <v-card-actions>
         <v-btn variant="text" @click="dialog = false">Cancel</v-btn>
         <v-spacer></v-spacer>
-        <v-btn color="primary" @click="saveToken">Save</v-btn>
+        <v-btn color="primary" @click="saveToken" :disabled="inputRules.length > 0">Save</v-btn> <!-- input valid return [] -->
       </v-card-actions>
     </v-card>
   </v-dialog>
