@@ -1,11 +1,9 @@
 <script>
-import { useServer } from '../../stores/server'
-import { mapActions } from 'pinia'
-
-const NAME_MIN_LENGTH = 2
-const NAME_MAX_LENGTH = 50
 import { useServer } from "../../stores/server";
 import { mapActions } from "pinia";
+
+const NAME_MIN_LENGTH = 2
+const NAME_MAX_LENGTH = 255
 
 export default {
   data() {
@@ -19,12 +17,12 @@ export default {
         description: ''
       },
       headers: [
-        { text: 'ID', value: 'id', width: '15%' },
-        { text: 'Hash', value: 'hash', width: '20%' },
-        { text: 'Read-only', value: 'readonly', width: '10%' },
-        { text: 'Admin', value: 'admin', width: '10%' },
-        { text: 'Description', value: 'description', width: '35%' },
-        { text: 'Actions', value: 'actions', sortable: false, width: '10%' }
+        { title: 'ID', value: 'id', align: 'start', width: '10%' },
+        { title: 'Hash', value: 'hash', align: 'start', width: '20%' },
+        { title: 'Read-only', value: 'readonly', align: 'center', width: '10%' },
+        { title: 'Admin', value: 'admin', align: 'center', width: '10%' },
+        { title: 'Description', value: 'description', align: 'start', width: '30%' },
+        { title: 'Actions', value: 'actions', align: 'end', width: '20%', sortable: false }
       ],
       
     }
@@ -185,11 +183,13 @@ export default {
 				}}</v-chip>
 			</template>
 
-			<template v-slot:item.actions="{ item }">
-				<v-btn icon @click="removeToken(item)">
-					<v-icon>mdi-delete</v-icon>
-				</v-btn>
-			</template>
+      <template v-slot:item.actions="{ item }">
+        <div class="d-flex justify-end">
+          <v-btn icon @click="removeToken(item)">
+            <v-icon>mdi-delete</v-icon>
+          </v-btn>
+        </div>
+      </template>
 
 			<template v-slot:no-data>
 				<v-btn prepend-icon="mdi-backup-restore" @click="fetchTokens">Reload</v-btn>
@@ -235,3 +235,7 @@ export default {
 		</v-card>
 	</v-dialog>
 </template>
+
+
+
+

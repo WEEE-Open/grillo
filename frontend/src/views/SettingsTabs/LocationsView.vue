@@ -3,7 +3,7 @@ import { useServer } from "../../stores/server";
 import { mapState, mapActions } from "pinia";
 
 const NAME_MIN_LENGTH = 2
-const NAME_MAX_LENGTH = 25
+const NAME_MAX_LENGTH = 255
 
 export default {
     data() {
@@ -33,6 +33,16 @@ export default {
             if (this.record.name.length > NAME_MAX_LENGTH) return [`Name must be less than ${NAME_MAX_LENGTH} characters`]
             if (this.record.name.length < NAME_MIN_LENGTH) return [`Name must be at least ${NAME_MIN_LENGTH} characters`]
             return []
+        }
+    },
+    watch: { //when record.name is modified
+        'record.name': {
+            handler(newVal) {
+                if (!this.isEditing && newVal) {
+                    this.record.id = this.generateLocationId(newVal)
+                }
+            },
+            immediate: true
         }
     },
     methods: {
@@ -156,6 +166,14 @@ export default {
 				<v-checkbox label="Admin" v-model="record.admin"></v-checkbox>
 			</v-card-text>
       <v-card-text>
+        <v-text-field 
+            label="ID"
+            v-model="record.id"
+            :placeholder="generateLocationId(record.name)"
+            :disabled="isEditing"
+            
+        ></v-text-field>
+
         <v-text-field label="Name" 
                       v-model="record.name" 
                       :counter="maxLength"
@@ -163,7 +181,9 @@ export default {
                       
                             
                     ></v-text-field>
+
       </v-card-text>
+      
 
 			<v-card-actions>
 				<v-btn variant="text" @click="dialog = false">Cancel</v-btn>
