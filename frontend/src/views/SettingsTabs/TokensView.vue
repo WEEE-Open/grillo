@@ -209,8 +209,6 @@ export default {
                       :counter="maxLength"
                       :rules="inputRules"
                       ></v-text-field>
-        <v-checkbox label="Read-only" v-model="record.readonly"></v-checkbox>
-        <v-checkbox label="Admin" v-model="record.admin"></v-checkbox>
         
       </v-card-text>
 			<v-card-text>
