@@ -136,9 +136,7 @@ export const useServer = defineStore("server", {
 		async createToken(token){
 			
 			let [request, abort] = this.makeRequest("POST", "/tokens/new", {
-				description: token.description,
-				isReadOnly: token.readonly,
-				isAdmin: token.admin
+				description: token.description
 			});
 			
 			let response = await request;
