@@ -27,7 +27,7 @@ const config = {
 		//	subtitle: "",
 		//},
 		// [...]
-	]
+	],
 };
 
 export default config;

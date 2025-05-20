@@ -7,44 +7,44 @@ const router = createRouter({
 		{
 			path: "/",
 			name: "home",
-			component: EmptyView // the base app component already contains the home page
+			component: EmptyView, // the base app component already contains the home page
 		},
 		{
 			path: "/schedule",
 			name: "schedule",
-			component: () => import('../views/ScheduleView.vue'),
+			component: () => import("../views/ScheduleView.vue"),
 		},
 		{
 			path: "/logs",
 			name: "logs",
-			component: () => import('../views/LogsView.vue'),
+			component: () => import("../views/LogsView.vue"),
 		},
 		{
 			path: "/events",
 			name: "events",
-			component: () => import('../views/EventsView.vue'),
+			component: () => import("../views/EventsView.vue"),
 		},
 		{
 			path: "/settings",
 			name: "settings-parent",
-			component: () => import('../views/SettingsView.vue'),
+			component: () => import("../views/SettingsView.vue"),
 			children: [
 				{
-					path: '',
-					name: 'settings',
+					path: "",
+					name: "settings",
 					component: EmptyView,
 				},
 				{
-					path: 'locations',
-					name: 'locations',
-					component: () => import('../views/SettingsTabs/LocationsView.vue'),
+					path: "locations",
+					name: "locations",
+					component: () => import("../views/SettingsTabs/LocationsView.vue"),
 				},
 				{
-					path: 'tokens',
-					name: 'tokens',
-					component: () => import('../views/SettingsTabs/TokensView.vue'),
-				}
-			]
+					path: "tokens",
+					name: "tokens",
+					component: () => import("../views/SettingsTabs/TokensView.vue"),
+				},
+			],
 		},
 	],
 });

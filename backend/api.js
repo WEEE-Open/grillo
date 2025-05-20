@@ -120,7 +120,7 @@ router.get("/config", authRO, (req, res) => {
 	res.json({
 		servicesLinks: config.servicesLinks,
 	});
-})
+});
 
 router.get("/lab/info", authRO, (req, res) => {
 	/// ecc
@@ -477,8 +477,7 @@ router.patch("/locations/:id", authAdmin, async (req, res) => {
 });
 
 router.delete("/locations/:id", authAdmin, async (req, res) => {
-	await db.deleteLocation(req.params.id);
-	res.status(200).send();
+	res.status(501).send();
 });
 
 // #endregion
