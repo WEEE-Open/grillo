@@ -1,61 +1,13 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <link rel="icon" href="/favicon.ico">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grillo</title>
-    <style>
-      :root {
-        --white:white;
-        --green:#00983a;
-        --grey:#343a40;
-        --grey-menu:grey;
-        --grey-menu-hover:lightgrey;
-        --space-h:10rem;
-        --space-v:1.4rem;
-        --space-v-border:0.5rem;
-      }
-      body {
-        margin:0;
-        font-family:sans-serif;
-      }
-      nav {
-        padding-top:var(--space-v);
-        padding-bottom:var(--space-v);
-        padding-left:var(--space-h);
-        padding-right:var(--space-h);
-        background-color:var(--grey);
-        color:var(--grey-menu);
-        border-bottom:var(--space-v-border) solid var(--green);
-        display:flex;
-        flex-direction:row;
-        gap:2rem;
-      }
-      .logo {
-        margin-bottom:-0.3rem;
-      }
-      main {
-        margin-top:var(--space-v);
-        margin-bottom:var(--space-v);
-        margin-left:var(--space-h);
-        margin-right:var(--space-h);
-        /* border:1px solid red; */
-      }
-      h1 {
-        font-weight:normal;
-        font-size:280%;
-      }
-      .nav-button {
-        cursor:pointer;
-      }
-      .nav-button:hover {
-        color:var(--white);
-      }
-    </style>
-  </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.js"></script>
-  </body>
+<!doctype html>
+<html>
+	<head>
+		<meta charset="UTF-8" />
+		<link rel="icon" href="/favicon.ico" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Grillo</title>
+	</head>
+	<body>
+		<div id="app"></div>
+		<script type="module" src="/src/main.js"></script>
+	</body>
 </html>

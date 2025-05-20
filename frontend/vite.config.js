@@ -1,21 +1,21 @@
-import { fileURLToPath, URL } from 'node:url'
+import { fileURLToPath, URL } from "node:url";
 
-import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue'
+import { defineConfig } from "vite";
+import vue from "@vitejs/plugin-vue";
+import vueDevTools from "vite-plugin-vue-devtools";
+import vuetify from "vite-plugin-vuetify";
 
-// https://vitejs.dev/config/
+// https://vite.dev/config/
 export default defineConfig({
-	plugins: [
-		vue(),
-	],
+	plugins: [vue(), vuetify(), vueDevTools()],
 	resolve: {
 		alias: {
-			'@': fileURLToPath(new URL('./src', import.meta.url))
-		}
+			"@": fileURLToPath(new URL("./src", import.meta.url)),
+		},
 	},
 	server: {
 		proxy: {
-			'/api/v1': 'http://localhost:3000'
+			"/api/v1": "http://localhost:3000",
 		},
-	}
-})
+	},
+});

@@ -1,6 +1,6 @@
 services:
   server:
-    build: 
+    build:
       context: "."
       dockerfile: "./docker/server/Dockerfile"
       args:
@@ -19,7 +19,7 @@ services:
       - db
     stop_grace_period: 1s
   db:
-    build: 
+    build:
       context: "."
       dockerfile: "./docker/db/Dockerfile"
     restart: always

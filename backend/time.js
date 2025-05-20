@@ -1,6 +1,6 @@
 export default class Time {
-	constructor (hour, minute) {
-		if (hour.constructor.name == 'Time') {
+	constructor(hour, minute) {
+		if (hour.constructor.name == "Time") {
 			this.hour = hour.hour;
 			this.minute = hour.minute;
 		} else {
@@ -66,9 +66,6 @@ export default class Time {
 	}
 
 	toJSON() {
-		return [
-			this.hour,
-			this.minute
-		]
+		return [this.hour, this.minute];
 	}
 }
