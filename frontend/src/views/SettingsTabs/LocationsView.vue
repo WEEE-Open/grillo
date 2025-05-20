@@ -12,6 +12,7 @@ export default {
             loading: false,
             dialog: false, 
             isEditing: false, 
+            idModified: false, //stop id prediction
             record: { 
                 id: '',
                 name: ''
@@ -28,22 +29,42 @@ export default {
         maxLength() {
             return NAME_MAX_LENGTH //return the const usable in the template
         },   
-        inputRules() {
+        nameRules() {
             if (!this.record.name) return ['Name is required']
             if (this.record.name.length > NAME_MAX_LENGTH) return [`Name must be less than ${NAME_MAX_LENGTH} characters`]
             if (this.record.name.length < NAME_MIN_LENGTH) return [`Name must be at least ${NAME_MIN_LENGTH} characters`]
+            
+            
+
             return []
+        },
+
+        idRules() {
+            if (!this.record.id) return ['ID is required']
+            if (!/^[a-z0-9-]+$/.test(this.record.id)) return ['ID can only contain lowercase letters, numbers, and hyphens']
+            
+            if (!this.isEditing && this.isExistingId(this.record.id)) {
+                return ['This ID already exists']
+            }
+            
+            return []
+        },
+        inputIsValid() {
+            return this.nameRules.length === 0 && this.idRules.length === 0
         }
+        
+        
     },
     watch: { //when record.name is modified
         'record.name': {
             handler(newVal) {
-                if (!this.isEditing && newVal) {
-                    this.record.id = this.generateLocationId(newVal)
+                if (!this.isEditing && newVal && !this.idModified) {
+                    this.record.id = this.generateLocationId(newVal);
                 }
             },
             immediate: true
         }
+        
     },
     methods: {
         ...mapActions(useServer, ['getLocations', 'createLocation', 'updateLocation', 'deleteLocation']),
@@ -67,7 +88,6 @@ export default {
                 if (this.isEditing) {
                     result = await this.updateLocation(this.record);
                 } else {
-                    this.record.id = this.generateLocationId(this.record.name);
                     result = await this.createLocation(this.record);
                 }
                 
@@ -83,6 +103,7 @@ export default {
         
         async removeLocation(item){
             try{
+                console.log(item);
                 let result = await this.deleteLocation(item);
                 if(result){
                     this.fetchLocations(); //check if there is a better method lolz
@@ -96,9 +117,9 @@ export default {
         },
 
     edit(item) {
-      this.isEditing = true
+      this.isEditing = true;
       this.record = { ...item }
-      this.dialog = true
+      this.dialog = true;
     },
 
     add() {
@@ -107,8 +128,18 @@ export default {
         id: '',
         name: '',
       }
-      this.dialog = true
+      this.idModified = false;
+      this.dialog = true;
     },
+
+    isExistingId(id){
+            return this.locations.some(location => location.id === id)
+    },
+    handleIdInput() {
+        if (!this.isEditing) { 
+            this.idModified = true;
+        }
+    }
 
     },
     mounted() {
@@ -166,23 +197,27 @@ export default {
 				<v-checkbox label="Admin" v-model="record.admin"></v-checkbox>
 			</v-card-text>
       <v-card-text>
-        <v-text-field 
-            label="ID"
-            v-model="record.id"
-            :placeholder="generateLocationId(record.name)"
-            :disabled="isEditing"
-            
-        ></v-text-field>
-
+        
         <v-text-field label="Name" 
                       v-model="record.name" 
                       :counter="maxLength"
-                      :rules="inputRules"
+                      :rules="nameRules"
                       
                             
                     ></v-text-field>
 
+        <v-text-field 
+            label="ID"
+            v-model="record.id"
+            :counter="maxLength"
+            :rules="idRules"
+            :disabled="isEditing"
+            @input="handleIdInput"
+            
+        ></v-text-field>
+
       </v-card-text>
+
       
 
 			<v-card-actions>
@@ -195,7 +230,7 @@ export default {
       <v-card-actions>
         <v-btn variant="text" @click="dialog = false">Cancel</v-btn>
         <v-spacer></v-spacer>
-        <v-btn color="primary" @click="saveLocation" :disabled="inputRules.length > 0">Save</v-btn> <!-- input valid return [] -->
+        <v-btn color="primary" @click="saveLocation" :disabled="!inputIsValid">Save</v-btn> <!-- input valid return both [] -->
       </v-card-actions>
     </v-card>
   </v-dialog>
