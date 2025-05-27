@@ -132,22 +132,27 @@ export const useServer = defineStore("server", {
 		async createToken(token) {
 			let [request, abort] = this.makeRequest("POST", "/tokens/new", {
 				description: token.description,
-				isReadOnly: token.readonly,
-				isAdmin: token.admin,
+				readonly: token.readonly,
+				admin: token.admin,
 			});
 
-			let response = await request;
-			if (response.ok) {
-				return true;
-			} else {
-				if (response.status === 401) {
-					throw new Error("Not autheticated");
-				} else if (response.status === 403) {
-					throw new Error("No permission");
+			try {
+				let response = await request;
+				if (response.ok) {
+					const data = await response.json();
+					return data;
 				} else {
-					throw new Error("Error occured during token creation");
+					if (response.status === 401) {
+						throw new Error("Not authenticated");
+					} else if (response.status === 403) {
+						throw new Error("No permission");
+					} else {
+						throw new Error("Error occurred during token creation");
+					}
 				}
-				//Da controllare tutti gli errori
+			} catch (error) {
+				console.error("Token creation failed:", error);
+				throw error;
 			}
 		},
 		async createLocation(location) {
