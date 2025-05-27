@@ -32,8 +32,9 @@ COPY . .
 
 
 RUN if [ "$DEVELOPMENT" != "true" ]; \
-	then npm run frontend:prod; \
+    then npm run frontend:prod; \
 fi
+
 
 # Expose ports
 EXPOSE 3000
