@@ -1,15 +1,3 @@
-<<<<<<< HEAD
-import config from './config.js';
-import express, { query } from 'express';
-import { db, io } from './index.js';
-import { authAdmin, authRO, authRW, validateSession } from './authorization.js';
-import dayjs from 'dayjs';
-import cookieParser from 'cookie-parser';
-import Time from './time.js';
-
-import isoWeek from 'dayjs/plugin/isoWeek.js';
-dayjs.extend(isoWeek);
-=======
 import config from "./config.js";
 import express from "express";
 import { db, io } from "./index.js";
@@ -17,7 +5,6 @@ import { authAdmin, authRO, authRW, validateSession } from "./authorization.js";
 import dayjs from "dayjs";
 import cookieParser from "cookie-parser";
 import { isSafeReturnUrl, toUnixTimestamp } from "./utils.js";
->>>>>>> origin/master
 
 const router = express.Router();
 router.use(cookieParser());
@@ -157,38 +144,6 @@ router.post("/lab/ring", authRW, async (req, res) => {
 	}
 });
 
-<<<<<<< HEAD
-function toUnixTimestamp(dateString) {
-	if(dateString==undefined){
-		return NaN;
-	}
-    // Se è già un timestamp UNIX (numero), restituiscilo direttamente
-    if (!isNaN(dateString)) return Number(dateString);
-
-    // Prova a parsare come ISO 8601
-    let timestamp = dayjs(dateString);
-    if (timestamp.isValid()) {
-        return timestamp.unix();
-    }
-
-    // Prova a parsare come formato "DD/MM/YYYY HH:mm"
-    const match = dateString.match(/^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})$/);
-    if (match) {
-        const [, day, month, year, hours, minutes] = match.map(Number);
-        const formattedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-        timestamp = dayjs(formattedDate);
-        if (timestamp.isValid()) {
-            return timestamp.unix();
-        }
-    }
-
-    // Se il formato non è valido, restituisci NaN
-    return NaN;
-}
-
-
-=======
->>>>>>> origin/master
 // region events
 
 router.get("/events", authRW, async (req, res) => {
@@ -262,32 +217,6 @@ router.delete("/events/:id", authAdmin, async (req, res) => {
 /*
     Create a booking
 */
-<<<<<<< HEAD
-router.post('/bookings/new',authRW, async (req, res) => {
-
-    var inTime = toUnixTimestamp(req.body.startTime);
-    var endTime = toUnixTimestamp(req.body.endTime);
-
-    if(isNaN(inTime) || dayjs.unix(inTime).isBefore(dayjs())){
-        res.status(400).json({error: "Invalid time"});
-        return;
-    }
-		
-
-	if(req.session.isAdmin && isNaN(endTime) ){
-		res.status(400).json({error: "Gli admin DEVONO inserire una data di uscita"});
-	   return;
-	} 
-	
-	if(isNaN(inTime) && dayjs.unix(inTime).isAfter(dayjs.unix(endTime))){
-			res.status(400).json({error: "End time is before start time"});
-		return;
-	}
-	
-    if (endTime == NaN) endTime=null;
-    let booking = await db.addBooking(req.session.user.id, inTime, endTime);
-    res.status(200).json(booking);
-=======
 router.post("/bookings/new", authRW, async (req, res) => {
 	var inTime = parseInt(req.body.startTime);
 	var endTime = parseInt(req.body.endTime);
@@ -303,60 +232,11 @@ router.post("/bookings/new", authRW, async (req, res) => {
 	if (endTime == NaN) endTime = null;
 	let booking = await db.addBooking(req.body.user, inTime, endTime);
 	res.status(200).json(booking);
->>>>>>> origin/master
 });
 
 /*
     Get all bookings of this week or a given week
 */
-<<<<<<< HEAD
-router.get('/bookings', authRO, async (req, res) => {
-    let date=toUnixTimestamp(req.body.dateString);
-	let userId;
-	let startWeek;
-    let endWeek;
-
-    if (!isNaN(date)) {
-		startWeek = date.startOf('isoWeek').unix();
-		endWeek = date.endOf('isoWeek').unix();
-    } else {
-		startWeek = dayjs().startOf('isoWeek').unix(); 
-		endWeek = dayjs().endOf('isoWeek').unix();  		
-    }
-		if(req.body.user == null || req.body.user== undefined){
-			userId=null;
-		}else{
-			userId=req.body.user;
-		}
-
-
-    const bookings = await db.getBookings(startWeek, endWeek, userId);
-    res.json(bookings);
-    
-});
-
-/*
-    Get a booking given the id
-*/
-router.get('/bookings/:id', authRO, async (req, res) => {
-    const bookings = await db.getBooking(req.params.id);
-    res.json(bookings);
-    
-});
-
-/*
-    Delete a booking
-*/ 
-router.delete('/bookings/:id',authRW, async (req, res) => {
-    let booking = await db.getBooking(req.params.id);
-	console.log(req.session.isAdmin);
-    if (booking.userId != req.session.user.id && !req.session.isAdmin){
-        res.status(403).send("Not authorized");
-        return;
-    }
-    await db.deleteBooking(req.params.id);
-    res.status(204).send();
-=======
 router.get("/bookings", authRO, async (req, res) => {
 	let week = parseInt(req.query.week);
 	let year = parseInt(req.query.year);
@@ -386,47 +266,10 @@ router.delete("/bookings/:id", authRW, async (req, res) => {
 	}
 	await db.deleteBooking(req.params.id);
 	res.status(204).send();
->>>>>>> origin/master
 });
 
 /*
     Edit a booking
-<<<<<<< HEAD
-*/ 
-router.post('/bookings/:id', authRW, async (req, res) => {
-    let booking = await db.getBooking(req.params.id);
-
-    // Booking non trovato
-    if (!booking) {
-        res.status(404).send("Booking not found");
-        return;
-    }
-
-    // Autorizzazione
-    if (booking.userid != req.session.user.id && !req.session.isAdmin) {
-        res.status(403).send("Not authorized");
-        return;
-    }
-
-    // Validazione input
-    const inTime = toUnixTimestamp(req.body.startTime);
-    const endTime = toUnixTimestamp(req.body.endTime);
-
-    if (isNaN(inTime) || dayjs.unix(inTime).isBefore(dayjs())) {
-        res.status(400).json({ error: "Invalid time" });
-        return;
-    }
-
-    if (!isNaN(endTime) && dayjs.unix(inTime).isAfter(dayjs.unix(endTime))) {
-        res.status(400).json({ error: "End time is before start time" });
-        return;
-    }
-
-    const finalEndTime = isNaN(endTime) ? null : endTime;
-
-    await db.editBooking(booking.id, inTime, finalEndTime);
-    res.sendStatus(200);
-=======
 */
 router.post("/bookings/:id", authRW, async (req, res) => {
 	let booking = db.getBooking(req.params.id);
@@ -448,7 +291,6 @@ router.post("/bookings/:id", authRW, async (req, res) => {
 	if (endTime == NaN) endTime = null;
 	await db.editBooking(booking.id, inTime, endTime);
 	res.sendStatus(200).send();
->>>>>>> origin/master
 });
 
 // region tokens
