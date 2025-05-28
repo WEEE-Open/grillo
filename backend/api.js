@@ -319,7 +319,7 @@ router.get("/tokens/:id", authAdmin, async (req, res) => {
  Generate a token
 */
 router.post("/tokens/new", authAdmin, async (req, res) => {
-	let result = await db.generateToken(false, req.session.isAdmin, req.body.description); //provvisorio
+	let result = await db.generateToken(req.body.readonly, req.body.admin, req.body.description);
 	res.status(200).json(result);
 });
 

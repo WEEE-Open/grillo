@@ -1,4 +1,4 @@
-import { ref, computed } from "vue";
+import { ref, computed, isReadonly } from "vue";
 import { defineStore } from "pinia";
 
 export const useServer = defineStore("server", {
@@ -132,8 +132,8 @@ export const useServer = defineStore("server", {
 		async createToken(token) {
 			let [request, abort] = this.makeRequest("POST", "/tokens/new", {
 				description: token.description,
-				readonly: token.readonly,
-				admin: token.admin,
+				isReadonly: token.isReadonly,
+				isAdmin: token.isAdmin,
 			});
 
 			try {
