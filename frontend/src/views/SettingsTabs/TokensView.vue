@@ -176,7 +176,7 @@ export default {
 			</template>
 
 			<template v-slot:item.readonly="{ item }">
-				<v-chip :color="item.readonly ? 'green' : 'blue'" dark>{{
+				<v-chip :color="item.readonly ? 'green' : 'gray'" dark>{{
 					item.readonly ? "Yes" : "No"
 				}}</v-chip>
 			</template>
@@ -187,7 +187,7 @@ export default {
 			</template>
 
 			<template v-slot:item.admin="{ item }">
-				<v-chip :color="item.admin ? 'green' : 'red'" dark>{{ item.admin ? "Yes" : "No" }}</v-chip>
+				<v-chip :color="item.admin ? 'green' : 'grey'" dark>{{ item.admin ? "Yes" : "No" }}</v-chip>
 			</template>
 
 			<template v-slot:item.actions="{ item }">
