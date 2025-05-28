@@ -176,7 +176,7 @@ export default {
 			</template>
 
 			<template v-slot:item.readonly="{ item }">
-				<v-chip :color="item.readonly ? 'blue' : 'grey'" dark>{{
+				<v-chip :color="item.readonly ? 'green' : 'blue'" dark>{{
 					item.readonly ? "Yes" : "No"
 				}}</v-chip>
 			</template>
@@ -210,6 +210,9 @@ export default {
 			<v-card-subtitle> Create a new token </v-card-subtitle>
 
 			<v-card-text>
+				<v-checkbox label="Read-only" v-model="record.readonly"></v-checkbox>
+				<v-checkbox label="Admin" v-model="record.admin"></v-checkbox>
+
 				<v-textarea
 					label="Description"
 					v-model="record.description"
@@ -231,7 +234,7 @@ export default {
 		<v-card>
 			<v-card-title class="text-h5">Confirm Deletion</v-card-title>
 			<v-card-text>
-				Are you sure you want to delete this token "{{ itemToDelete?.name }}"?
+				Are you sure you want to delete this token "{{ itemToDelete.id }}"?
 				<br />
 				<span class="text-red">This action cannot be undone.</span>
 			</v-card-text>
