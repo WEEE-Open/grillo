@@ -12,7 +12,8 @@ export default {
 			loading: false,
 			dialog: false,
 			confirmDialog: false,
-			passwordDialog: false,
+			fullStringDialog: false,
+			copied: false, // make sure is copied at least once
 			itemToDelete: null, // for confirmation dialog
 			record: {
 				readonly: false,
@@ -38,11 +39,17 @@ export default {
 				return [`Description must be less than ${NAME_MAX_LENGTH} characters`];
 			if (this.record.description.length < NAME_MIN_LENGTH)
 				return [`Description must be at least ${NAME_MIN_LENGTH} characters`];
+
 			return [];
+		},
+		fullStringRule() {
+			if (!this.copied) {
+				return ["You must copy the token at least once"];
+			}
 		},
 	},
 	methods: {
-		...mapActions(useServer, ["getTokens", "createToken", "deleteToken", "showPassword"]),
+		...mapActions(useServer, ["getTokens", "createToken", "deleteToken", "showfullString"]),
 
 		async fetchTokens() {
 			this.loading = true;
@@ -95,7 +102,7 @@ export default {
 				let result = await this.createToken(this.record);
 				if (result) {
 					this.dialog = false; //close dialog
-					this.showPassword(result.password);
+					this.showfullString(result.fullString);
 					this.fetchTokens(); //check if there is a better method lolz
 				}
 			} catch (error) {
@@ -117,9 +124,10 @@ export default {
 		async copyText(text) {
 			try {
 				await navigator.clipboard.writeText(text);
-				console.log("Password copied to clipboard");
+				this.copied = true;
+				console.log("Token copied to clipboard");
 			} catch (err) {
-				console.error("Failed to copy password:", err);
+				console.error("Failed to copy Token:", err);
 			}
 		},
 
@@ -127,9 +135,23 @@ export default {
 			this.itemToDelete = item;
 			this.confirmDialog = true;
 		},
-		showPassword(password) {
-			this.generatedPassword = password;
-			this.passwordDialog = true;
+		showfullString(fullstring) {
+			this.generatedFullString = fullstring;
+			this.fullStringDialog = true;
+			this.copied = false; // reset copied state for new token
+		},
+
+		//cannot be both readonly and admin
+		onAdminChange() {
+			if (this.record.admin) {
+				this.record.readonly = false;
+			}
+		},
+
+		onReadonlyChange() {
+			if (this.record.readonly) {
+				this.record.admin = false;
+			}
 		},
 	},
 
@@ -176,7 +198,7 @@ export default {
 			</template>
 
 			<template v-slot:item.readonly="{ item }">
-				<v-chip :color="item.readonly ? 'green' : 'gray'" dark>{{
+				<v-chip :color="item.readonly ? 'primary' : 'grey'" dark>{{
 					item.readonly ? "Yes" : "No"
 				}}</v-chip>
 			</template>
@@ -187,7 +209,9 @@ export default {
 			</template>
 
 			<template v-slot:item.admin="{ item }">
-				<v-chip :color="item.admin ? 'green' : 'grey'" dark>{{ item.admin ? "Yes" : "No" }}</v-chip>
+				<v-chip :color="item.admin ? 'primary' : 'grey'" dark>{{
+					item.admin ? "Yes" : "No"
+				}}</v-chip>
 			</template>
 
 			<template v-slot:item.actions="{ item }">
@@ -210,8 +234,18 @@ export default {
 			<v-card-subtitle> Create a new token </v-card-subtitle>
 
 			<v-card-text>
-				<v-checkbox label="Read-only" v-model="record.readonly"></v-checkbox>
-				<v-checkbox label="Admin" v-model="record.admin"></v-checkbox>
+				<v-checkbox
+					label="Read-only"
+					v-model="record.readonly"
+					@change="onReadonlyChange"
+					:disable="record.admin"
+				></v-checkbox>
+				<v-checkbox
+					label="Admin"
+					v-model="record.admin"
+					@change="onAdminChange"
+					:disable="record.readonly"
+				></v-checkbox>
 
 				<v-textarea
 					label="Description"
@@ -246,24 +280,39 @@ export default {
 		</v-card>
 	</v-dialog>
 
-	<!-- Password dialog-->
-	<v-dialog v-model="passwordDialog" max-width="500">
+	<!-- FullString dialog-->
+	<v-dialog v-model="fullStringDialog" max-width="500">
 		<v-card>
 			<v-card-title class="text-h5">Token Generated Successfully</v-card-title>
 			<v-card-text>
-				<p>Your password has been generated. Please copy and store it in a safe place.</p>
+				<p>Your Token has been generated. Please copy and store it in a safe place.</p>
 				<p><strong>This will NOT be shown again.</strong></p>
 				<v-text-field
-					:value="generatedPassword"
-					label="Click for showing password"
+					:value="generatedFullString"
+					label="Click to show token"
 					readonly
 					append-icon="mdi-content-copy"
-					@click:append="() => copyText(generatedPassword)"
+					@click:append="() => copyText(generatedFullString)"
 				></v-text-field>
 			</v-card-text>
 			<v-card-actions>
 				<v-spacer></v-spacer>
-				<v-btn color="primary" text @click="passwordDialog = false">Close</v-btn>
+				<v-tooltip bottom :disabled="copied" text="Press copy at least once">
+					<template v-slot:activator="{ props }">
+						<div v-bind="props" class="d-inline-block">
+							<v-btn
+								color="primary"
+								text
+								@click="
+									fullStringDialog = false;
+									copied = false;
+								"
+								:disabled="!copied"
+								>Close</v-btn
+							>
+						</div>
+					</template>
+				</v-tooltip>
 			</v-card-actions>
 		</v-card>
 	</v-dialog>
