@@ -4,6 +4,7 @@ import { User, Session, Booking } from "./models.js";
 import dayjs from "dayjs";
 
 import Ldap from "./ldap.js";
+import { generateRandomString } from "./utils.js";
 
 export class Database {
 	constructor(config) {
@@ -227,10 +228,8 @@ export class Database {
 
 	async generateToken(readOnly, isAdmin, description) {
 		while (true) {
-			let token =
-				Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-			let password =
-				Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+			let token = generateRandomString();
+			let password = generateRandomString();
 			let hash = await bcrypt.hash(password, this.apiKeySaltRounds);
 			try {
 				await this.db`
@@ -270,8 +269,8 @@ export class Database {
             WHERE id = ${id}
         `;
 		if (location.length === 0) {
-        	return null; //altrimenti è sempre vero
-    	}
+			return null; //altrimenti è sempre vero
+		}
 		return location;
 	}
 
@@ -294,13 +293,13 @@ export class Database {
 		console.log(result);
 		return result[0];
 	}
-	async deleteLocation(id){
+	async deleteLocation(id) {
 		const result = await this.db`
         DELETE FROM location
         WHERE id = ${id}
         RETURNING *;
     	`;
-    	return result[0];
+		return result[0];
 	}
 
 	// #endregion
@@ -623,4 +622,51 @@ export class Database {
 	}
 
 	// #endregion
+
+	//#region codes
+
+	/**
+	 *
+	 * @param {string} code
+	 * @param {string=} userId
+	 * @param {number} expirationTime
+	 */
+
+	async generateCode(userId) {
+		const code = generateRandomString();
+		const expirationTime = Date.now(1000 * 60); //one minute expiration time
+		if (userId === undefined) {
+			return await this.db.run`
+				INSERT INTO code (code, expirationTime) 
+				VALUES (${code}, ${expirationTime}) 
+				RETURNING *;`;
+		} else {
+			return await this.db.run`
+				INSERT INTO code (code, userId, expirationTime) 
+				VALUES (${code}, ${userId}, ${expirationTime}) 
+				RETURNING *;`;
+		}
+	}
+
+	async getUserByCode(code) {
+		try {
+			const userId = await this.db`
+				 SELECT userId
+				 FROM codes
+				 WHERE code = ${code}
+			`;
+			return userId;
+		} catch (e) {
+			if (e.code != "23505") {
+				throw e;
+			}
+		}
+	}
+	async assignCode(code, userId) {
+		return await this.db.run`
+			UPDATE codes
+			SET userId = ${userId}
+			WHERE code = ${code}
+		`;
+	}
 }
