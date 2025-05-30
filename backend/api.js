@@ -319,6 +319,11 @@ router.get("/tokens/:id", authAdmin, async (req, res) => {
  Generate a token
 */
 router.post("/tokens/new", authAdmin, async (req, res) => {
+	if (req.body.readonly && req.body.admin) {
+		return res
+			.status(400)
+			.json({ error: "Cannot generate a token with both readonly and admin permissions" });
+	}
 	let result = await db.generateToken(req.body.readonly, req.body.admin, req.body.description);
 	res.status(200).json(result);
 });
