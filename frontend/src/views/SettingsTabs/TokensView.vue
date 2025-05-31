@@ -61,16 +61,6 @@ export default {
 				this.loading = false;
 			}
 		},
-		async fetchTokens() {
-			this.loading = true;
-			try {
-				this.tokens = await this.getTokens();
-			} catch (error) {
-				console.error("Tokens fetch failed:", error);
-			} finally {
-				this.loading = false;
-			}
-		},
 
 		edit(item) {
 			this.isEditing = true;
@@ -78,15 +68,6 @@ export default {
 			this.dialog = true;
 		},
 
-		add() {
-			this.isEditing = false;
-			this.record = {
-				readonly: false,
-				admin: false,
-				description: "",
-			};
-			this.dialog = true;
-		},
 		add() {
 			this.isEditing = false;
 			this.record = {
@@ -179,31 +160,9 @@ export default {
 					<v-btn class="ml-2" @click="fetchTokens">Refresh</v-btn>
 				</v-toolbar>
 			</template>
-	<v-sheet border rounded>
-		<v-data-table
-			:headers="headers"
-			:items="tokens"
-			:loading="loading"
-			loading-text="Loading tokens..."
-			fixed-header
-			height="400px"
-		>
-			<template v-slot:top>
-				<v-toolbar flat>
-					<v-toolbar-title>API Tokens</v-toolbar-title>
-					<v-spacer></v-spacer>
-					<v-btn color="primary" prepend-icon="mdi-plus" @click="add">Add Token</v-btn>
-					<v-btn class="ml-2" @click="fetchTokens">Refresh</v-btn>
-				</v-toolbar>
-			</template>
 
 			<template v-slot:item.readonly="{ item }">
 				<v-chip :color="item.readonly ? 'primary' : 'grey'" dark>{{
-					item.readonly ? "Yes" : "No"
-				}}</v-chip>
-			</template>
-			<template v-slot:item.readonly="{ item }">
-				<v-chip :color="item.readonly ? 'blue' : 'grey'" dark>{{
 					item.readonly ? "Yes" : "No"
 				}}</v-chip>
 			</template>
@@ -228,25 +187,20 @@ export default {
 		<v-card>
 			<v-card-title>Add Token</v-card-title>
 			<v-card-subtitle> Create a new token </v-card-subtitle>
-	<v-dialog v-model="dialog" max-width="600">
-		<v-card>
-			<v-card-title>Add Token</v-card-title>
-			<v-card-subtitle> Create a new token </v-card-subtitle>
 
 			<v-card-text>
 				<v-checkbox
 					label="Read-only"
 					v-model="record.readonly"
-					@change="onReadonlyChange"
-					:disable="record.admin"
+					@update:modelValue="onReadonlyChange"
+					:disabled="record.admin"
 				></v-checkbox>
 				<v-checkbox
 					label="Admin"
 					v-model="record.admin"
-					@change="onAdminChange"
-					:disable="record.readonly"
+					@update:modelValue="onAdminChange"
+					:disabled="record.readonly"
 				></v-checkbox>
-
 				<v-textarea
 					label="Description"
 					v-model="record.description"
