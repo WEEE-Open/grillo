@@ -15,7 +15,8 @@ router.use(cookieParser());
 router.use(validateSession);
 
 router.get('/ping', async (req, res) => {
-    res.send('pong');
+	res.send('pong');
+	console.log("Ciao mondo!");
 	//res.json(await db.generateToken(true, false, "weeetofono"));
 });
 
@@ -67,10 +68,10 @@ if (config.testMode) {
 
 router.get('/user', authRW, async (req, res) => {
 	console.log(req.session);
-    res.json(req.session);
+	res.json(req.session);
 });
 
-router.delete('/user/session', authRW,async (req, res) => {
+router.delete('/user/session', authRW, async (req, res) => {
 	if (req.session.type == 'api') {
 		if (req.session.isAdmin) {
 			await db.deleteApiKey(req.session.id);
@@ -112,37 +113,37 @@ router.post('/lab/ring', authRW, async (req, res) => {
 });
 
 function toUnixTimestamp(dateString) {
-	if(dateString==undefined){
+	if (dateString == undefined) {
 		return NaN;
 	}
-    // Se è già un timestamp UNIX (numero), restituiscilo direttamente
-    if (!isNaN(dateString)) return Number(dateString);
+	// Se è già un timestamp UNIX (numero), restituiscilo direttamente
+	if (!isNaN(dateString)) return Number(dateString);
 
-    // Prova a parsare come ISO 8601
-    let timestamp = dayjs(dateString);
-    if (timestamp.isValid()) {
-        return timestamp.unix();
-    }
+	// Prova a parsare come ISO 8601
+	let timestamp = dayjs(dateString);
+	if (timestamp.isValid()) {
+		return timestamp.unix();
+	}
 
-    // Prova a parsare come formato "DD/MM/YYYY HH:mm"
-    const match = dateString.match(/^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})$/);
-    if (match) {
-        const [, day, month, year, hours, minutes] = match.map(Number);
-        const formattedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-        timestamp = dayjs(formattedDate);
-        if (timestamp.isValid()) {
-            return timestamp.unix();
-        }
-    }
+	// Prova a parsare come formato "DD/MM/YYYY HH:mm"
+	const match = dateString.match(/^(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})$/);
+	if (match) {
+		const [, day, month, year, hours, minutes] = match.map(Number);
+		const formattedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+		timestamp = dayjs(formattedDate);
+		if (timestamp.isValid()) {
+			return timestamp.unix();
+		}
+	}
 
-    // Se il formato non è valido, restituisci NaN
-    return NaN;
+	// Se il formato non è valido, restituisci NaN
+	return NaN;
 }
 
 
 // region events
 
-router.get('/events', authRW,async (req, res) => {
+router.get('/events', authRW, async (req, res) => {
 	const event = await db.getEvents();
 
 	if (!event) {
@@ -152,18 +153,18 @@ router.get('/events', authRW,async (req, res) => {
 	res.status(200).json(event);
 });
 
-router.post('/events/new',authAdmin, async (req, res) => {
+router.post('/events/new', authAdmin, async (req, res) => {
 	const exevent = await db.getEvent(req.body.id);
 	console.log("asd post new");
-	if(exevent){
+	if (exevent) {
 		return res.status(400).json({ error: "L'ID della location esiste già" });
 	}
 
-	let event = await db.addEvent(req.body.id,toUnixTimestamp(req.body.startTime),toUnixTimestamp(req.body.endTime), req.body.title, req.body.description);
+	let event = await db.addEvent(req.body.id, toUnixTimestamp(req.body.startTime), toUnixTimestamp(req.body.endTime), req.body.title, req.body.description);
 	res.status(200).json(event);
 });
 
-router.get('/events/:id',authAdmin,async (req, res) => {
+router.get('/events/:id', authAdmin, async (req, res) => {
 	console.log("asd get events id");
 	let event = await db.getEvent(req.params.id);
 	if (!event) {
@@ -172,10 +173,10 @@ router.get('/events/:id',authAdmin,async (req, res) => {
 	res.status(200).json(event);
 });
 
-router.post('/events/:id',authAdmin,async (req, res) => {
+router.post('/events/:id', authAdmin, async (req, res) => {
 	console.log("asd eventi id post");
 	let event = await db.getEvent(req.params.id);
-	
+
 	var startTime = toUnixTimestamp(req.body.startTime);
 	var endTime = toUnixTimestamp(req.body.endTime);
 	if (endTime == NaN) endTime = null;
@@ -184,15 +185,15 @@ router.post('/events/:id',authAdmin,async (req, res) => {
 });
 
 
-router.delete('/events/:id',authAdmin, async (req,res)=> {
+router.delete('/events/:id', authAdmin, async (req, res) => {
 	const eventId = req.params.id;
-    const deletedEvent = await db.deleteEvent(eventId);
+	const deletedEvent = await db.deleteEvent(eventId);
 
-        if (!deletedEvent) {
-            return res.status(404).json({ error: "Event not found" });
-        }
+	if (!deletedEvent) {
+		return res.status(404).json({ error: "Event not found" });
+	}
 
-        res.status(200).json("Deleted :)");
+	res.status(200).json("Deleted :)");
 });
 
 // #ENDREGION
@@ -200,125 +201,126 @@ router.delete('/events/:id',authAdmin, async (req,res)=> {
 // #region bookings
 
 /*
-    Create a booking
+	Create a booking
 */
-router.post('/bookings/new',authRW, async (req, res) => {
+router.post('/bookings/new', authRW, async (req, res) => {
 
-    var inTime = toUnixTimestamp(req.body.startTime);
-    var endTime = toUnixTimestamp(req.body.endTime);
+	var inTime = toUnixTimestamp(req.body.startTime);
+	var endTime = toUnixTimestamp(req.body.endTime);
 
-    if(isNaN(inTime) || dayjs.unix(inTime).isBefore(dayjs())){
-        res.status(400).json({error: "Invalid time"});
-        return;
-    }
-		
-
-	if(req.session.isAdmin && isNaN(endTime) ){
-		res.status(400).json({error: "Gli admin DEVONO inserire una data di uscita"});
-	   return;
-	} 
-	
-	if(isNaN(inTime) && dayjs.unix(inTime).isAfter(dayjs.unix(endTime))){
-			res.status(400).json({error: "End time is before start time"});
+	if (isNaN(inTime) || dayjs.unix(inTime).isBefore(dayjs())) {
+		res.status(400).json({ error: "Invalid time" });
 		return;
 	}
-	
-    if (endTime == NaN) endTime=null;
-    let booking = await db.addBooking(req.session.user.id, inTime, endTime);
-    res.status(200).json(booking);
+
+
+	if (req.session.isAdmin && isNaN(endTime)) {
+		res.status(400).json({ error: "Gli admin DEVONO inserire una data di uscita" });
+		return;
+	}
+
+	if (isNaN(inTime) && dayjs.unix(inTime).isAfter(dayjs.unix(endTime))) {
+		res.status(400).json({ error: "End time is before start time" });
+		return;
+	}
+
+	if (endTime == NaN) endTime = null;
+	let booking = await db.addBooking(req.session.user.id, inTime, endTime);
+	res.status(200).json(booking);
 });
 
 /*
-    Get all bookings of this week or a given week
+	Get all bookings of this week or a given week
 */
 router.get('/bookings', authRO, async (req, res) => {
-    let date=toUnixTimestamp(req.body.dateString);
+
+
+	let date = toUnixTimestamp(req.body.dateString);
 	let userId;
 	let startWeek;
-    let endWeek;
+	let endWeek;
 
-    if (!isNaN(date)) {
+	if (!isNaN(date)) {
 		startWeek = date.startOf('isoWeek').unix();
 		endWeek = date.endOf('isoWeek').unix();
-    } else {
-		startWeek = dayjs().startOf('isoWeek').unix(); 
-		endWeek = dayjs().endOf('isoWeek').unix();  		
-    }
-		if(req.body.user == null || req.body.user== undefined){
-			userId=null;
-		}else{
-			userId=req.body.user;
-		}
+	} else {
+		startWeek = dayjs().startOf('isoWeek').unix();
+		endWeek = dayjs().endOf('isoWeek').unix();
+	}
+	if (req.body.user == null || req.body.user == undefined) {
+		userId = null;
+	} else {
+		userId = req.body.user;
+	}
 
 
-    const bookings = await db.getBookings(startWeek, endWeek, userId);
-    res.json(bookings);
-    
+	const bookings = await db.getBookings(startWeek, endWeek, userId);
+	res.json(bookings);
+
 });
 
 /*
-    Get a booking given the id
+	Get a booking given the id
 */
 router.get('/bookings/:id', authRO, async (req, res) => {
-    const bookings = await db.getBooking(req.params.id);
-    res.json(bookings);
-    
+	const bookings = await db.getBooking(req.params.id);
+	res.json(bookings);
+
 });
 
 /*
-    Delete a booking
-*/ 
-router.delete('/bookings/:id',authRW, async (req, res) => {
-    let booking = await db.getBooking(req.params.id);
+	Delete a booking
+*/
+router.delete('/bookings/:id', authRW, async (req, res) => {
+	let booking = await db.getBooking(req.params.id);
 	console.log(req.session.isAdmin);
-    if (booking.userId != req.session.user.id && !req.session.isAdmin){
-        res.status(403).send("Not authorized");
-        return;
-    }
-    await db.deleteBooking(req.params.id);
-    res.status(204).send();
+	if (booking.userId != req.session.user.id && !req.session.isAdmin) {
+		res.status(403).send("Not authorized");
+		return;
+	}
+	await db.deleteBooking(req.params.id);
+	res.status(204).send();
 });
 
 /*
-    Edit a booking
-*/ 
+	Edit a booking
+*/
 router.post('/bookings/:id', authRW, async (req, res) => {
-    let booking = await db.getBooking(req.params.id);
+	let booking = await db.getBooking(req.params.id);
 
-    // Booking non trovato
-    if (!booking) {
-        res.status(404).send("Booking not found");
-        return;
-    }
+	// Booking non trovato
+	if (!booking) {
+		res.status(404).send("Booking not found");
+		return;
+	}
 
-    // Autorizzazione
-    if (booking.userid != req.session.user.id && !req.session.isAdmin) {
-        res.status(403).send("Not authorized");
-        return;
-    }
+	// Autorizzazione
+	if (booking.userid != req.session.user.id && !req.session.isAdmin) {
+		res.status(403).send("Not authorized");
+		return;
+	}
 
-    // Validazione input
-    const inTime = toUnixTimestamp(req.body.startTime);
-    const endTime = toUnixTimestamp(req.body.endTime);
+	// Validazione input
+	const inTime = toUnixTimestamp(req.body.startTime);
+	const endTime = toUnixTimestamp(req.body.endTime);
 
-    if (isNaN(inTime) || dayjs.unix(inTime).isBefore(dayjs())) {
-        res.status(400).json({ error: "Invalid time" });
-        return;
-    }
+	if (isNaN(inTime) || dayjs.unix(inTime).isBefore(dayjs())) {
+		res.status(400).json({ error: "Invalid time" });
+		return;
+	}
 
-    if (!isNaN(endTime) && dayjs.unix(inTime).isAfter(dayjs.unix(endTime))) {
-        res.status(400).json({ error: "End time is before start time" });
-        return;
-    }
+	if (!isNaN(endTime) && dayjs.unix(inTime).isAfter(dayjs.unix(endTime))) {
+		res.status(400).json({ error: "End time is before start time" });
+		return;
+	}
 
-    const finalEndTime = isNaN(endTime) ? null : endTime;
+	const finalEndTime = isNaN(endTime) ? null : endTime;
 
-    await db.editBooking(booking.id, inTime, finalEndTime);
-    res.sendStatus(200);
+	await db.editBooking(booking.id, inTime, finalEndTime);
+	res.sendStatus(200);
 });
 
-
-// region audits
+// region lab
 
 /**
  * 	Create entrace
@@ -328,28 +330,28 @@ router.post('/bookings/:id', authRW, async (req, res) => {
  * (number) startTime
  * (string) locationId
  */
-router.post('/lab/in',authRW, async (req, res) => {
+router.post('/lab/in', authRW, async (req, res) => {
 	var user = req.body.userId;
-    var inTime = parseInt(req.body.startTime);
+	var inTime = parseInt(req.body.startTime);
 	var location = getLocation(req.body.locationId);
-	if (!req.user.isAdmin && req.user.id != user){
-		res.status(400).json({error: "Invalid user"});
-        return;
+	if (!req.user.isAdmin && req.user.id != user) {
+		res.status(400).json({ error: "Invalid user" });
+		return;
 	}
-	if (!location){
-		res.status(400).json({error: "Invalid location"});
-        return;
+	if (!location) {
+		res.status(400).json({ error: "Invalid location" });
+		return;
 	}
-    if(inTime == NaN){
-        res.status(400).json({error: "Invalid time"});
-        return;
-    }
-	if (alreadyLogged){
-		res.status(400).json({error: "User already logged in"});
-        return;
+	if (inTime == NaN) {
+		res.status(400).json({ error: "Invalid time" });
+		return;
 	}
-    let audit = await addEntrance(user, inTime, req.body.idLocation, req.user.isAdmin);
-    res.status(200).json(audit);
+	if (alreadyLogged) {
+		res.status(400).json({ error: "User already logged in" });
+		return;
+	}
+	let audit = await addEntrance(user, inTime, req.body.idLocation, req.user.isAdmin);
+	res.status(200).json(audit);
 });
 
 /**
@@ -359,25 +361,44 @@ router.post('/lab/in',authRW, async (req, res) => {
  * (int) outTime
  * (string) motivation mandatory
  */
-router.post('/lab/out',authRW, async(req, res) => {
+router.post('/lab/out', authRW, async (req, res) => {
 	var user = req.body.userId;
 	var outTime = parseInt(req.body.outTime);
-	if (!req.user.isAdmin && req.user.id != user){
-		res.status(400).json({error: "Invalid user"});
-        return;
+	if (!req.user.isAdmin && req.user.id != user) {
+		res.status(400).json({ error: "Invalid user" });
+		return;
 	}
 
-    if(outTime == NaN){
-        res.status(400).json({error: "Invalid time"});
-        return;
-    }
+	if (outTime == NaN) {
+		res.status(400).json({ error: "Invalid time" });
+		return;
+	}
 	await bookingToDelete(user, inTime);
-    let audit = await addExit(req.user.id, outTime, req.user.isAdmin, req.body.motivation);
-    res.status(200).json(audit);
+	let audit = await addExit(req.user.id, outTime, req.user.isAdmin, req.body.motivation);
+	res.status(200).json(audit);
 })
+// region audits
+
+/*
+// inizio fine settimana
+function getMonday(d) {
+	d = new Date(d);
+	var day = d.getDay(),
+		diff = d.getDate() - day + (day == 0 ? -6 : 1); // adjust when day is sunday
+	return new Date(d.setDate(diff));
+}
+
+function getSunday(fromDate = new Date()) {
+	const date = new Date(fromDate); 
+	const day = date.getDay();       
+	const diff = (7 - day) % 7;      
+	date.setDate(date.getDate() + diff);
+	return date;
+}
+*/
 
 /**
- * Edit audit
+ * get audit
  * 
  * Body can contain:
  * {number=} startTime 
@@ -386,53 +407,131 @@ router.post('/lab/out',authRW, async(req, res) => {
  * {boolean=} approved
  * {string=} location 
  */
-router.patch('/audits/:id',authRW, async(req, res) => {
-	let auditId = req.params.id;
-	let audit = getAudit(auditId);
-	if (!audit){
-		res.status(400).json({error: "Invalid audit id"});
-        return;
+
+router.get('/audits', authRW, async (req, res) => {
+
+
+	let date = toUnixTimestamp(req.body.dateString);
+	let userId;
+	let startWeek;
+	let endWeek;
+
+	if (!isNaN(date)) {
+		startWeek = date.startOf('isoWeek').unix();
+		endWeek = date.endOf('isoWeek').unix();
+	} else {
+		startWeek = dayjs().startOf('isoWeek').unix();
+		endWeek = dayjs().endOf('isoWeek').unix();
 	}
-	if (!req.user.isAdmin){
-		res.status(400).json({error: "Operation not allowed"});
-        return;
+
+	if (req.body.user == null || req.body.user == undefined) {
+		userId = null;
+	} else {
+		userId = req.body.user;
 	}
-	let startTime = parseInt(req.body.startTime);
-	let endTime = parseInt(req.bpdy.endTime);
-	if (startTime == NaN)	startTime = audit.startTime;
-	if (endTime == NaN)		endTime = audit.endTime;
-	if (dayjs.unix(inTime).isAfter(dayjs.unix(endTime))){
-		res.status(400).json({error: "Invalid time"});
-        return;
-	}
-	let params = req.body;
-	let edAudit = editAudit(auditId, params);
-	res.status(200).json(edAudit);
+
+
+	let weekAudit = db.getAudits(startWeek, endWeek, userId);
+	res.status(200).json(weekAudit);
 })
 
-/**
- * Show audits
- * 
- * {number=} start
- * {number=} end
- * {sring[]=} users
- */
-router.get('/audits',authRO, async (req, res) => {
-    let start = parseInt(req.query.start);
-    let end = parseInt(req.query.end);
-    let users = req.query.user.split(",");
+router.get('/audit/:id', authRW, async (req, res) => {
+	let audit = db.getAudit(req.params.id);
+	if (!audit) {
+		res.status(404).send("Audit not found");
+		return;
+	}
+	res.status(200).json(audit);
+})
 
+router.post('/audits/new', authRW, async (req, res) => {
 
-    const audits = getAudits(start, end, users);
-    res.json(audits);
+	let inTime = toUnixTimestamp(req.body.startTime);
+	let endTime = toUnixTimestamp(req.body.endTime);
+	let approved = false;
+
+	if (endTime == NaN) endTime = null;
+	if (req.session.isAdmin) approved = true;
+	if (alreadyLogged(req.body.userId) != null) {
+		res.status(500).json("already logged");
+	}
+
+	let audits = await db.addEntrance(req.body.id, inTime, endTime, req.body.locationId, approved);
+	res.status(200).json(audits);
 });
 
+//usato per entrare ed uscire 
+router.post('/audits/new', authRW, async (req, res) => {
 
+	let inTime = toUnixTimestamp(req.body.startTime);
+	let endTime = toUnixTimestamp(req.body.endTime);
+	let approved = false;
+	let motivation;
+	if (endTime == NaN) endTime = null;
+	if (req.body.motivation == NaN) motivation = null;
+	if (req.session.isAdmin) approved = true;
+	if (alreadyLogged(req.body.userId) != null && endTime == null) {
+		res.status(500).json("inserti exit time");
+	} else if (alreadyLogged(req.body.userId) != null && endTime != null) {
+		let audits = await db.addExit(alreadyLogged(req.body.userId), endTime, req.body.locationId, motivation);
+		res.status(200).json(audits);
+	}
+
+	let audits = await db.addEntrance(req.body.id, inTime, endTime, req.body.locationId, approved);
+	res.status(200).json(audits);
+});
+
+router.patch('/audits/:id', authRW, async (req, res) => {
+	let startTime, endTime, motivation, location;
+	let approved = false;
+	if (req.session.isAdmin) approved = true;
+	let audit = await db.getAudit(req.params.id)
+	if (audit == null || audit == NaN) {
+		res.status(500).json("req audit not found");
+		return;
+	}
+	if (audit.userid != req.session.user.id && !req.session.isAdmin) {
+		res.status(403).send("Not authorized");
+		return;
+	}
+	if (req.session.isAdmin && req.body.approved) {
+		approved = true;
+		return;
+	}
+
+	if (req.body.startTime != NaN && req.body.startTime != null) {
+		startTime = req.body.startTime;
+	} else {
+		startTime = audit.startTime;
+	}
+
+	if (req.body.endTime != NaN && req.body.endTime != null) {
+		endTime = req.body.endTime;
+	} else {
+		endTime = audit.endTime;
+	}
+
+	if (req.body.motivation != NaN && req.body.motivation != null) {
+		motivation = req.body.motivation;
+	} else {
+		motivation = audit.motivation;
+	}
+
+	if (req.body.location != NaN && req.body.location != null) {
+		location = req.body.location;
+	} else {
+		location = audit.location;
+	}
+
+
+	let audits = await db.editAudit(req.params.id, startTime, endTime, motivation, approved, location);
+	res.status(200).json(audits);
+});
 // #endregion
 
 // region locations
 
-router.get('/locations',authRO,async (req, res) =>{
+router.get('/locations', authRO, async (req, res) => {
 	const locations = await db.getLocations();
 	if (!locations) {
 		return res.status(500).json({ error: "No locations found" });
@@ -441,31 +540,30 @@ router.get('/locations',authRO,async (req, res) =>{
 	res.status(200).json(locations);
 });
 
-router.post('/locations/new',authAdmin,async (req, res) =>{
+router.post('/locations/new', authAdmin, async (req, res) => {
 	const existingLocation = await db.getLocation(req.body.id);
-	console.log("asd");
 	if (existingLocation) {
 		return res.status(400).json({ error: "L'ID della location esiste già" });
 	}
 
 	let location = await db.addLocation(req.body.id, req.body.name);
-    res.status(200).json(location);
+	res.status(200).json(location);
 });
 
-router.patch('/locations/:id',authAdmin,async (req, res) =>{
+router.patch('/locations/:id', authAdmin, async (req, res) => {
 	let locationsid = req.params.id;
-	let location = db.getLocation(locationsid);
-	if (!location){
-		res.status(400).json({error: "Invalid location id"});
-        return;
+	let location = await db.getLocation(locationsid);
+	if (!location) {
+		res.status(400).json({ error: "Invalid location id" });
+		return;
 	}
-	
+
 	let name = req.body.name;
 	let edLocation = await db.editLocation(locationsid, name);
-	res.status(200).json(edLocation); 
+	res.status(200).json(edLocation);
 });
 
-router.delete('/locations/:id',authAdmin,async (req, res) =>{
+router.delete('/locations/:id', authAdmin, async (req, res) => {
 	res.status(501).send();
 });
 
