@@ -56,7 +56,7 @@ if (config.testMode) {
 			<ul>`;
 		let users = await db.getUsers();
 		for (let user of users) {
-			page += `<li><a href="?uid=${user.id}">${user.name}</a></li>`;
+			page += `<li><a href="?uid=${user.id}">${user.name} (${user.groups.join(",")})</a></li>`;
 		}
 		page += `
 			</ul>
@@ -487,5 +487,44 @@ router.delete("/locations/:id", authAdmin, async (req, res) => {
 });
 
 // #endregion
+
+// region codes
+router.get("/codes/new", authRW, async (req, res) => {
+	let user = null;
+	if (req.session.isUser) {
+		user = req.session.user;
+	}
+
+	let result = await db.generateCode(user.id);
+	res.status(200).send();
+});
+
+router.get("/codes/:code/user", authRW, async (req, res) => {
+	let user = await db.getUserByCode(req.params.code);
+	console.log(user[0].userid);
+	let userId = user[0].userid;
+	if (!userId || userId.length === 0) {
+		res.status(404).json({ error: "User not found" });
+	} else {
+		res.status(200).json(userId);
+	}
+});
+
+router.post("/codes/:code/user", authRW, async (req, res) => {
+	let user = await db.getUserByCode(req.params.code);
+	let userId = user[0].userid;
+	if (!userId || userId === 0) {
+		//not assigned, so assign
+		await db.assignCode(req.params.code, req.session.user.id);
+		res.status(200).send();
+		return;
+	} else {
+		res.status(403).send({ error: "Forbidden Access" });
+	}
+});
+router.delete("/codes/:code", authRW, async (req, res) => {
+	await db.deleteCode(req.params.code);
+	res.status(200).send();
+});
 
 export default router;

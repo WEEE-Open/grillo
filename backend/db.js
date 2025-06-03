@@ -634,15 +634,15 @@ export class Database {
 
 	async generateCode(userId) {
 		const code = generateRandomString();
-		const expirationTime = Date.now(1000 * 60); //one minute expiration time
+		const expirationTime = parseInt(Date.now() / 1000 + 60); //one minute expiration time
 		if (userId === undefined) {
-			return await this.db.run`
-				INSERT INTO code (code, expirationTime) 
+			return await this.db`
+				INSERT INTO codes (code, expirationTime) 
 				VALUES (${code}, ${expirationTime}) 
 				RETURNING *;`;
 		} else {
-			return await this.db.run`
-				INSERT INTO code (code, userId, expirationTime) 
+			return await this.db`
+				INSERT INTO codes (code, userId, expirationTime) 
 				VALUES (${code}, ${userId}, ${expirationTime}) 
 				RETURNING *;`;
 		}
@@ -662,11 +662,18 @@ export class Database {
 			}
 		}
 	}
+
 	async assignCode(code, userId) {
-		return await this.db.run`
+		return await this.db`
 			UPDATE codes
 			SET userId = ${userId}
 			WHERE code = ${code}
 		`;
+	}
+
+	async deleteCode(code) {
+		return await this.db`
+                DELETE FROM codes
+                WHERE code = ${code};`;
 	}
 }

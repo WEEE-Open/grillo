@@ -68,6 +68,15 @@ CREATE TABLE IF NOT EXISTS "token" (
     description TEXT
 );
 
+CREATE TABLE IF NOT EXISTS "codes" (
+     code VARCHAR(255) PRIMARY KEY NOT NULL,  
+     userId VARCHAR(255), 
+     expirationTime INTEGER NOT NULL,
+
+    FOREIGN KEY(userId) REFERENCES "user"(id)
+
+);
+
 CREATE TABLE IF NOT EXISTS "event" (
     id SERIAL PRIMARY KEY NOT NULL,
     startTime INTEGER NOT NULL,
@@ -76,14 +85,7 @@ CREATE TABLE IF NOT EXISTS "event" (
     description TEXT
 );
 
-CREATE TABLE IF NOT EXISTS "codes" (
-     code VARCHAR(255) PRIMARY KEY NOT NULL,  
-     userId VARCHAR(255), 
-     expirationTime INTEGER NOT NULL,
 
-    FOREIGN KEY(userId) REFERENCES "user"(id),
-
-)
 
 CREATE OR REPLACE FUNCTION update_user_seconds()
 RETURNS TRIGGER AS $$
