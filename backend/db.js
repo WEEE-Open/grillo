@@ -1,6 +1,6 @@
 import postgres from "postgres";
 import bcrypt from "bcrypt";
-import { User, Session, Booking } from "./models.js";
+import { User, ApiToken, Session, Booking } from "./models.js";
 import dayjs from "dayjs";
 
 import Ldap from "./ldap.js";
@@ -192,20 +192,20 @@ export class Database {
 
 	// #region api token
 
-	async getTokens() {
+	async getApiTokens() {
 		return this.db`
 			SELECT * FROM "token";
-		`;
+		`.then(res => res.map(t => new ApiToken(t)));
 	}
 
-	async getToken(id) {
+	async getApiToken(id) {
 		let dbData = await this.db`
 			SELECT * FROM "token" WHERE id = ${id};
 		`;
 		if (dbData.length == 0) {
 			return null;
 		}
-		return dbData[0];
+		return new ApiToken(dbData[0]);
 	}
 
 	async validateApiToken(token) {
@@ -220,13 +220,13 @@ export class Database {
 		return new Session("api", dbData);
 	}
 
-	async deleteToken(id) {
+	async deleteApiToken(id) {
 		return this.db`
 			DELETE FROM "token" WHERE id = ${id};
 		`;
 	}
 
-	async generateToken(readOnly, isAdmin, description) {
+	async generateApiToken(readOnly, isAdmin, description) {
 		while (true) {
 			let token = generateRandomString();
 			let password = generateRandomString();

@@ -21,15 +21,28 @@ export default {
 				description: "",
 			},
 			headers: [
-				{ title: "ID", value: "id", align: "start", width: "15%" },
-				{ title: "Read-only", value: "readonly", align: "center", width: "15%" },
-				{ title: "Admin", value: "admin", align: "center", width: "15%" },
-				{ title: "Description", value: "description", align: "start", width: "35%" },
-				{ title: "Actions", value: "actions", align: "end", width: "20%", sortable: false },
+				{ title: "ID", key: "id", align: "start", width: "15%" },
+				{ title: "Permission", key: "permission", align: "center", width: "15%" },
+				{ title: "Description", key: "description", align: "start", width: "35%" },
+				{ title: "Actions", key: "actions", align: "end", width: "20%", sortable: false },
 			],
 		};
 	},
 	computed: {
+		computedTokens() {
+			return this.tokens.map(t => {
+				let permission = "default";
+				if (t.readonly) {
+					permission = "readonly";
+				} else if (t.admin) {
+					permission = "admin";
+				}
+				return {
+					...t,
+					permission,
+				};
+			});
+		},
 		maxLength() {
 			return NAME_MAX_LENGTH; //return the const usable in the template
 		},
@@ -143,10 +156,10 @@ export default {
 </script>
 
 <template>
-	<v-sheet border rounded>
+	<v-sheet rounded>
 		<v-data-table
 			:headers="headers"
-			:items="tokens"
+			:items="computedTokens"
 			:loading="loading"
 			loading-text="Loading tokens..."
 			fixed-header
@@ -161,23 +174,15 @@ export default {
 				</v-toolbar>
 			</template>
 
-			<template v-slot:item.readonly="{ item }">
-				<v-chip :color="item.readonly ? 'primary' : 'grey'" dark>{{
-					item.readonly ? "Yes" : "No"
-				}}</v-chip>
-			</template>
-
-			<template v-slot:item.admin="{ item }">
-				<v-chip :color="item.admin ? 'primary' : 'grey'" dark>{{
-					item.admin ? "Yes" : "No"
-				}}</v-chip>
+			<template v-slot:item.permission="{ item }">
+				<v-chip v-if="item.readonly" color="yellow">Read-only</v-chip>
+				<v-chip v-else-if="item.admin" color="blue">Admin</v-chip>
+				<v-chip v-else color="grey">Default</v-chip>
 			</template>
 
 			<template v-slot:item.actions="{ item }">
 				<div class="d-flex justify-end">
-					<v-btn icon @click="confirmDelete(item)">
-						<v-icon>mdi-delete</v-icon>
-					</v-btn>
+					<v-btn variant="text" icon="mdi-delete" @click="confirmDelete(item)" />
 				</div>
 			</template>
 		</v-data-table>
@@ -189,45 +194,40 @@ export default {
 			<v-card-subtitle> Create a new token </v-card-subtitle>
 
 			<v-card-text>
-				<v-checkbox
-					label="Read-only"
-					v-model="record.readonly"
-					@update:modelValue="onReadonlyChange"
-					:disabled="record.admin"
-				></v-checkbox>
-				<v-checkbox
-					label="Admin"
-					v-model="record.admin"
-					@update:modelValue="onAdminChange"
-					:disabled="record.readonly"
-				></v-checkbox>
-				<v-textarea
-					label="Description"
-					v-model="record.description"
-					:rules="inputRules"
-				></v-textarea>
+				<v-sheet class="d-flex justify-space-evenly">
+					<v-checkbox
+						label="Read-only"
+						v-model="record.readonly"
+						@update:modelValue="onReadonlyChange"
+						:disabled="record.admin"
+					/>
+					<v-checkbox
+						label="Admin"
+						v-model="record.admin"
+						@update:modelValue="onAdminChange"
+						:disabled="record.readonly"
+					/>
+				</v-sheet>
+				<v-textarea label="Description" v-model="record.description" :rules="inputRules" />
 			</v-card-text>
 
 			<v-card-actions>
 				<v-btn variant="text" @click="dialog = false">Cancel</v-btn>
 				<v-spacer></v-spacer>
 				<v-btn color="primary" @click="saveToken" :disabled="inputRules.length > 0">Save</v-btn>
-				<!-- input valid return [] -->
 			</v-card-actions>
 		</v-card>
 	</v-dialog>
 
-	<!-- Confimation dialog-->
 	<v-dialog v-model="confirmDialog" max-width="400">
 		<v-card>
 			<v-card-title class="text-h5">Confirm Deletion</v-card-title>
 			<v-card-text>
-				Are you sure you want to delete this token "{{ itemToDelete.id }}"?
-				<br />
+				<p>Are you sure you want to delete this token "{{ itemToDelete.id }}"?</p>
 				<span class="text-red">This action cannot be undone.</span>
 			</v-card-text>
 			<v-card-actions>
-				<v-spacer></v-spacer>
+				<v-spacer />
 				<v-btn color="grey" text @click="confirmDialog = false">Cancel</v-btn>
 				<v-btn color="error" @click="removeToken(itemToDelete)">Delete</v-btn>
 			</v-card-actions>
@@ -250,7 +250,7 @@ export default {
 				></v-text-field>
 			</v-card-text>
 			<v-card-actions>
-				<v-spacer></v-spacer>
+				<v-spacer />
 				<v-tooltip bottom :disabled="copied" text="Press copy at least once">
 					<template v-slot:activator="{ props }">
 						<div v-bind="props" class="d-inline-block">

@@ -20,6 +20,25 @@ export class User {
 	}
 }
 
+export class ApiToken {
+	constructor(opt) {
+		this.id = opt.id;
+		this.hash = opt.hash;
+		this.readonly = opt.readonly;
+		this.admin = opt.admin;
+		this.description = opt.description;
+	}
+
+	toJSON() {
+		return {
+			id: this.id,
+			readonly: this.readonly,
+			admin: this.admin,
+			description: this.description,
+		};
+	}
+}
+
 export class Session {
 	/**
 	 *

@@ -69,9 +69,9 @@ CREATE TABLE IF NOT EXISTS "token" (
 );
 
 CREATE TABLE IF NOT EXISTS "codes" (
-     code VARCHAR(255) PRIMARY KEY NOT NULL,  
-     userId VARCHAR(255), 
-     expirationTime INTEGER NOT NULL,
+    code VARCHAR(255) PRIMARY KEY NOT NULL,  
+    userId VARCHAR(255), 
+    expirationTime INTEGER NOT NULL,
 
     FOREIGN KEY(userId) REFERENCES "user"(id)
 

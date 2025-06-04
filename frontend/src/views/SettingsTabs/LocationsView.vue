@@ -158,7 +158,7 @@ export default {
 </script>
 
 <template>
-	<v-sheet border rounded>
+	<v-sheet rounded>
 		<v-data-table
 			:headers="headers"
 			:items="locations"
@@ -177,12 +177,8 @@ export default {
 			</template>
 			<template v-slot:item.actions="{ item }">
 				<div class="d-flex justify-end">
-					<v-btn icon class="mr-2" @click="edit(item)">
-						<v-icon>mdi-pencil</v-icon>
-					</v-btn>
-					<v-btn icon @click="confirmDelete(item)">
-						<v-icon>mdi-delete</v-icon>
-					</v-btn>
+					<v-btn variant="text" icon="mdi-pencil" class="mr-2" @click="edit(item)" />
+					<v-btn variant="text" icon="mdi-delete" @click="confirmDelete(item)" />
 				</div>
 			</template>
 		</v-data-table>

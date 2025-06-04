@@ -159,7 +159,6 @@ router.get("/events", authRW, async (req, res) => {
 
 router.post("/events/new", authAdmin, async (req, res) => {
 	const exevent = await db.getEvent(req.body.id);
-	console.log("asd post new");
 	if (exevent) {
 		return res.status(400).json({ error: "L'ID della location esiste già" });
 	}
@@ -175,7 +174,6 @@ router.post("/events/new", authAdmin, async (req, res) => {
 });
 
 router.get("/events/:id", authAdmin, async (req, res) => {
-	console.log("asd get events id");
 	let event = await db.getEvent(req.params.id);
 	if (!event) {
 		return res.status(500).json({ error: "No events found" });
@@ -184,7 +182,6 @@ router.get("/events/:id", authAdmin, async (req, res) => {
 });
 
 router.post("/events/:id", authAdmin, async (req, res) => {
-	console.log("asd eventi id post");
 	let event = await db.getEvent(req.params.id);
 
 	var startTime = toUnixTimestamp(req.body.startTime);
@@ -304,7 +301,7 @@ router.post("/bookings/:id", authRW, async (req, res) => {
 	Get all tokens
 */
 router.get("/tokens", authAdmin, async (req, res) => {
-	let tokens = await db.getTokens();
+	let tokens = await db.getApiTokens();
 	res.json(tokens);
 });
 
@@ -312,7 +309,7 @@ router.get("/tokens", authAdmin, async (req, res) => {
   Get a token by id
 */
 router.get("/tokens/:id", authAdmin, async (req, res) => {
-	let token = await db.getToken(req.params.id);
+	let token = await db.getApiToken(req.params.id);
 	res.json(token);
 });
 
@@ -323,9 +320,9 @@ router.post("/tokens/new", authAdmin, async (req, res) => {
 	if (req.body.readonly && req.body.admin) {
 		return res
 			.status(400)
-			.json({ error: "Cannot generate a token with both readonly and admin permissions" });
+			.json({ error: "Cannot generate an api token with both readonly and admin permissions" });
 	}
-	let result = await db.generateToken(req.body.readonly, req.body.admin, req.body.description);
+	let result = await db.generateApiToken(req.body.readonly, req.body.admin, req.body.description);
 	res.status(200).json(result);
 });
 
@@ -333,7 +330,7 @@ router.post("/tokens/new", authAdmin, async (req, res) => {
    Delete a token by id
 */
 router.delete("/tokens/:id", authAdmin, async (req, res) => {
-	await db.deleteToken(req.params.id);
+	await db.deleteApiToken(req.params.id);
 	res.status(200).send();
 });
 
@@ -460,7 +457,6 @@ router.get("/locations", authRO, async (req, res) => {
 
 router.post("/locations/new", authAdmin, async (req, res) => {
 	const existingLocation = await db.getLocation(req.body.id);
-	console.log("asd");
 	if (existingLocation) {
 		return res.status(400).json({ error: "L'ID della location esiste già" });
 	}
