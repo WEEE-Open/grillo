@@ -5,7 +5,7 @@ import { authAdmin, authRO, authRW, validateSession } from "./authorization.js";
 import dayjs from "dayjs";
 import cookieParser from "cookie-parser";
 import { isSafeReturnUrl, toUnixTimestamp } from "./utils.js";
-import QRCode from "qrcode"
+import QRCode from "qrcode";
 
 const router = express.Router();
 router.use(cookieParser());
@@ -527,22 +527,20 @@ router.delete("/codes/:code", authRW, async (req, res) => {
 	res.status(200).send();
 });
 
-router.get("/codes/:code/qr.png", authRW, async(req,res) => {
+router.get("/codes/:code/qr.png", authRW, async (req, res) => {
 	let user = null;
 	if (req.session.isUser) {
 		user = req.session.user;
 	}
 	let imageParams = {
-            type: 'png',
-            width: req.query.width || 300,
-            margin: req.query.margin || 2
-	}
+		type: "png",
+		width: req.query.width || 300,
+		margin: req.query.margin || 2,
+	};
 
 	let result = await db.generateCode(user.id);
 	res.set("Content-Type", "image/png");
 	QRCode.toFileStream(res, req.params.code, imageParams);
-	
-	
 });
 
 export default router;

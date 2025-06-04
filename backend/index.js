@@ -5,8 +5,6 @@ import express from "express";
 import { Server } from "socket.io";
 import yargs from "yargs";
 
-
-
 export const argv = yargs(process.argv)
 	.option("prod", {
 		alias: "p",
@@ -47,8 +45,6 @@ if (argv.prod) {
 		res.sendFile("../frontend/dist/index.html");
 	});
 }
-
-
 
 // ! do NOT put anything after this otherwise they will be bypassed in prod
 server.listen(config.port, () => {

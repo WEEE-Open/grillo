@@ -10,24 +10,24 @@ export default {
 };
 </script>
 <template>
-    <v-main>
-        <v-container fluid>
-            <v-row>
-                <v-col cols="auto">
-                    <v-tabs
-                        v-model="$route.name"
-                        @update:model-value="$router.push({ name: $event })"
-                        color="primary"
-                        direction="vertical"
-                    >
-                        <v-tab prepend-icon="mdi-map-marker-outline" value="locations">Locations</v-tab>
-                        <v-tab prepend-icon="mdi-key-outline" value="tokens">Api Tokens</v-tab>
-                    </v-tabs>
-                </v-col>
-                <v-col>
-                    <RouterView />
-                </v-col>
-            </v-row>
-        </v-container>
-    </v-main>
+	<v-main>
+		<v-container fluid>
+			<v-row>
+				<v-col cols="auto">
+					<v-tabs
+						v-model="$route.name"
+						@update:model-value="$router.push({ name: $event })"
+						color="primary"
+						direction="vertical"
+					>
+						<v-tab prepend-icon="mdi-map-marker-outline" value="locations">Locations</v-tab>
+						<v-tab prepend-icon="mdi-key-outline" value="tokens">Api Tokens</v-tab>
+					</v-tabs>
+				</v-col>
+				<v-col>
+					<RouterView />
+				</v-col>
+			</v-row>
+		</v-container>
+	</v-main>
 </template>
