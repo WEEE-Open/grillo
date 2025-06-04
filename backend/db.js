@@ -269,6 +269,9 @@ export class Database {
             FROM "location"
             WHERE id = ${id}
         `;
+		if (location.length === 0) {
+        	return null; //altrimenti è sempre vero
+    	}
 		return location;
 	}
 
@@ -290,6 +293,14 @@ export class Database {
         `;
 		console.log(result);
 		return result[0];
+	}
+	async deleteLocation(id){
+		const result = await this.db`
+        DELETE FROM location
+        WHERE id = ${id}
+        RETURNING *;
+    	`;
+    	return result[0];
 	}
 
 	// #endregion

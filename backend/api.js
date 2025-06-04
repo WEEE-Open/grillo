@@ -310,7 +310,7 @@ router.get("/tokens", authAdmin, async (req, res) => {
 /*
   Get a token by id
 */
-router.get("/tokens/:id", authRO, async (req, res) => {
+router.get("/tokens/:id", authAdmin, async (req, res) => {
 	let token = await db.getToken(req.params.id);
 	res.json(token);
 });
@@ -318,15 +318,20 @@ router.get("/tokens/:id", authRO, async (req, res) => {
 /*
  Generate a token
 */
-router.post("/tokens/new", authRW, async (req, res) => {
-	await db.generateToken(req.session.isReadOnly, req.session.isAdmin, req.body.description);
-	res.status(200).send();
+router.post("/tokens/new", authAdmin, async (req, res) => {
+	if (req.body.readonly && req.body.admin) {
+		return res
+			.status(400)
+			.json({ error: "Cannot generate a token with both readonly and admin permissions" });
+	}
+	let result = await db.generateToken(req.body.readonly, req.body.admin, req.body.description);
+	res.status(200).json(result);
 });
 
 /*
    Delete a token by id
 */
-router.delete("/tokens/:id", authRW, async (req, res) => {
+router.delete("/tokens/:id", authAdmin, async (req, res) => {
 	await db.deleteToken(req.params.id);
 	res.status(200).send();
 });
@@ -477,7 +482,8 @@ router.patch("/locations/:id", authAdmin, async (req, res) => {
 });
 
 router.delete("/locations/:id", authAdmin, async (req, res) => {
-	res.status(501).send();
+	await db.deleteLocation(req.params.id);
+	res.status(200).send();
 });
 
 // #endregion

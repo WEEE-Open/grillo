@@ -1,0 +1,37 @@
+{
+  "url": "http://localhost:3000/api/v1/locations/new",
+  "params": {},
+  "paramsArray": [],
+  "headers": {
+    "Cookie": "session=y342xjlombgt9r1qv3yroh",
+    "Content-Type": "application/json"
+  },
+  "headersArray": [
+    [
+      "a6772c8c-f547-4264-9ee1-2755effa3499",
+      "Cookie",
+      "session=y342xjlombgt9r1qv3yroh",
+      true,
+      "STRING"
+    ],
+    [
+      "c33b4619-473b-4bc8-8d54-287e36940470",
+      "Content-Type",
+      "application/json",
+      true,
+      "STRING"
+    ]
+  ],
+  "method": "post",
+  "backup": {
+    "bodyType": "raw",
+    "data": {},
+    "bodySubType": "json",
+    "rawData": "{\n  \"id\": \"L1\",\n  \"name\": \"Location1\"\n}\n ",
+    "dataArray": []
+  },
+  "data": {
+    "id": "L1",
+    "name": "Location1"
+  }
+}
