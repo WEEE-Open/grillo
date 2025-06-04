@@ -192,16 +192,15 @@ export default {
 				<v-checkbox
 					label="Read-only"
 					v-model="record.readonly"
-					@change="onReadonlyChange"
-					:disable="record.admin"
+					@update:modelValue="onReadonlyChange"
+					:disabled="record.admin"
 				></v-checkbox>
 				<v-checkbox
 					label="Admin"
 					v-model="record.admin"
-					@change="onAdminChange"
-					:disable="record.readonly"
+					@update:modelValue="onAdminChange"
+					:disabled="record.readonly"
 				></v-checkbox>
-
 				<v-textarea
 					label="Description"
 					v-model="record.description"

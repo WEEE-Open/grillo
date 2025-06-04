@@ -20,3 +20,7 @@ export function isSafeReturnUrl(url) {
 		return false;
 	}
 }
+
+export function generateRandomString() {
+	return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+}
