@@ -18,10 +18,7 @@ Development mode runs the backend with nodemon, so that as soon as you save it r
 ### Docker
 
 1. Clone the repo
-2. Copy the `config.example.js` as `config.js` and config if needed (if you edit the server port make sure to also change it in the `frontend/vite.config.js` file)
-3. Create a `.env` file and enter `DEVELOPMENT=true` and optionally `ADDJUNKDATA=true` to add some demo data to the database as well
-4. Create an empty folder in the root path called `database`
-5. Run `docker-compose up`
+2. Run `npm run docker:dev:up`
 
 # Running Production Mode
 
@@ -39,10 +36,8 @@ Production mode will automatically compile the frontend, and start up the backen
 ### Docker
 
 1. Clone the repo
-2. Copy the `config.example.js` as `config.js` and config if needed (if you edit the server port make sure to also change it in the `frontend/vite.config.js` file)
-3. Create a `.env` file and enter `DEVELOPMENT=false`
-4. Create an empty folder in the root path called `database`
-5. Run `docker-compose up`
+2. Copy the `config.example.js` as `config.js` and config if needed
+3. Run `npm run docker:prod:up`
 
 ## Configuring the WEEETofono
 

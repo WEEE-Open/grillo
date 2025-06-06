@@ -254,7 +254,6 @@ export class Database {
 	 */
 
 	async getLocations() {
-		console.log("asd db");
 		const location = await this.db`
             SELECT * 
             FROM "location"
@@ -290,7 +289,6 @@ export class Database {
             WHERE id = ${id}
             RETURNING *;
         `;
-		console.log(result);
 		return result[0];
 	}
 	async deleteLocation(id) {
@@ -567,13 +565,11 @@ export class Database {
 	}
 
 	async getEvent(id) {
-		console.log(id);
 		const event = await this.db`
             SELECT * 
             FROM "event"
             WHERE id = ${id};
         `;
-		console.log(event);
 		return event[0];
 	}
 
@@ -583,19 +579,16 @@ export class Database {
             VALUES (${id},${startTime},${endTime},${title},${description})
             RETURNING *;
         `;
-		console.log(event);
 		return event[0];
 	}
 
 	async editEvent(id, startTime, endTime, title, description) {
-		console.log(id, startTime, endTime, title, description);
 		const event = await this.db`
         UPDATE event
         SET  starttime = ${startTime},endtime=${endTime},title=${title},description = ${description}
         WHERE id = ${id}
         RETURNING *;
     `;
-		console.log(event);
 		return event[0];
 	}
 

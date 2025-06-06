@@ -111,7 +111,6 @@ export default {
 
 		async removeLocation(item) {
 			try {
-				console.log(item);
 				let result = await this.deleteLocation(item);
 				if (result) {
 					this.fetchLocations(); //check if there is a better method lolz

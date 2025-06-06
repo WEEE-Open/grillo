@@ -16,12 +16,14 @@ RUN npm install
 # Copy source code
 COPY . .
 
-# ! In prod you are ecpected to provide the config file
+CMD chmod +x /usr/src/app/docker/server/entry.dev.sh
 
-RUN npm run frontend:prod
+CMD ln /usr/src/app/backend/config.dev.js /usr/src/app/backend/config.js 
+# we ln it, but this will be removed once the container actually starts, will be recreated by the entry.dev.sh script
 
 # Expose ports
 EXPOSE 3000
+EXPOSE 5173
 
 # Run the server
-CMD npm run backend:prod
+CMD /usr/src/app/docker/server/entry.dev.sh

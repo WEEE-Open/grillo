@@ -335,7 +335,7 @@ export default {
 				/>
 			</v-main>
 		</template>
-		<RouterView />
+		<RouterView v-if="ready" />
 	</v-app>
 </template>
 <style>

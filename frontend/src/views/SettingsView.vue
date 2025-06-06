@@ -5,7 +5,6 @@ import { RouterView } from "vue-router";
 export default {
 	components: { RouterView },
 	mounted() {
-		console.log(toRaw(this.$route.name));
 	},
 };
 </script>

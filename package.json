@@ -17,10 +17,13 @@
 		"backend:prod": "cd backend && npm run prod",
 		"dev": "concurrently --names \"BACKEND,FRONTEND\" -c \"bgBlue.bold,bgMagenta.bold\" \"npm run backend:dev\" \"npm run frontend:dev\"",
 		"prod": "npm run frontend:prod && npm run backend:prod",
-		"docker:up": "docker compose up -d",
-		"docker:down": "docker compose down",
-		"docker:rebuild": "docker compose down && docker compose build --no-cache && docker compose up -d",
-		"format": "prettier --write ."
+		"docker:prod:up": "docker compose up -d",
+		"docker:prod:down": "docker compose down ",
+		"docker:prod:rebuild": "docker compose down && docker compose build --no-cache && docker compose up -d",
+		"docker:dev:up": "docker compose -f docker-compose.dev.yml up -d",
+		"docker:dev:down": "docker compose -f docker-compose.dev.yml down",
+		"docker:dev:rebuild": "docker compose -f docker-compose.dev.yml down && docker compose -f docker-compose.dev.yml build --no-cache && docker compose -f docker-compose.dev.yml up -d",
+		"lint": "prettier --write ."
 	},
 	"author": "WEEE Open",
 	"license": "MIT"
