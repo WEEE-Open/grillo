@@ -271,7 +271,7 @@ export class Database {
             FROM "location"
             WHERE id = ${id}
         `;
-		return location;
+		return location[0] ?? null;
 	}
 
 	async addLocation(id, name) {
@@ -368,26 +368,29 @@ export class Database {
 	 * @param {string} locationId
 	 * @param {boolean} approved
 	 */
-	async addEntrance(userId, timeIn, timeOut, locationId, approved) {
-		if (endTime == null) {
-			return this.db`
+	async addEntrance(userId, timeIn, timeOut, locationId, motivation, approved) {
+		if (timeOut == null) {
+			return (await this.db`
 			    INSERT INTO audit (userId, startTime, location, approved)  
-                VALUES (${userId}, ${timeIn},${locationId},${approved});
-		        RETURNING *`
+                VALUES (${userId}, ${timeIn},${locationId},${approved})
+		        RETURNING *;`)[0] ?? null;
 		}
 
 		return this.db`
-			    INSERT INTO "audit" (userId, startTime, endTime, location, approved) 
-                VALUES (${userId}, ${timeIn}, ${timeOut}, ${locationId}, ${approved})
+			    INSERT INTO "audit" (userId, startTime, endTime, location, motivation,approved) 
+                VALUES (${userId}, ${timeIn}, ${timeOut}, ${locationId}, ${motivation},${approved})
 		        RETURNING *;`;
 	}
 
 	async alreadyLogged(userId) {
-		return this.db`SELECT id FROM audit 
-        WHERE userId = ${userId} AND endTime IS NULL 
+		return (await this.db`
+		SELECT id FROM audit 
+		WHERE userId = ${userId} AND endTime IS NULL 
 		ORDER BY startTime DESC
-		LIMIT 1;`;
+		LIMIT 1
+	`)[0] ?? null; // <-- restituisce l'oggetto o null
 	}
+
 
 	/**
 	 *
@@ -423,16 +426,21 @@ export class Database {
 	 */
 	async addExit(Id, time, motivation) {
 		return this.db`
-                UPDATE audit SET endTime = ${time}, motivation = ${motivation}, WHERE id = ${Id} RETURNING *;`;
+    UPDATE audit 
+    SET endTime = ${time}, motivation = ${motivation} 
+    WHERE id = ${Id} 
+    RETURNING *;`;
 	}
 
-	async getAudit(id) {
-		return await this.db(
-			`SELECT * 
-        FROM audit
-        WHERE id = ${id}`
-		);
-	}
+
+async getAudit(id) {
+	return (await this.db`
+		SELECT * 
+		FROM audit
+		WHERE id = ${id}
+	`)[0] ?? null;
+}
+
 
 	async editAudit(id, startTime, endTime, motivation, approved, location) {
 		return this.db`
@@ -462,6 +470,11 @@ export class Database {
 
 	}
 
+	deleteAudit(auditId) {
+		return this.db`
+            DELETE FROM audit WHERE id = ${auditId};
+        `;
+	}
 
 	// #endregion
 
