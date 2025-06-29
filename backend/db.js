@@ -41,12 +41,12 @@ export class Database {
 	 */
 	async addBooking(userId, startTime, endTime) {
 		if (endTime == null) {
-			return this.db.run`
+			return this.db`
 			    INSERT INTO booking (userId, startTime) 
                 VALUES (${userId}, ${startTime});
 		        RETURNING *`;
 		}
-		return this.db.run`
+		return this.db`
 			INSERT INTO booking (userId, startTime, endTime) 
             VALUES (${userId}, ${startTime}, ${endTime}) 
             RETURNING *;
@@ -62,12 +62,12 @@ export class Database {
 	 */
 	async getBookings(startWeek, endWeek, users) {
 		if (users == null || users.length == 0) {
-			return this.db.run`
+			return this.db`
                 SELECT userid, starttime, endtime
                 FROM booking
                 WHERE starttime>=${startWeek} AND endtime<=${endWeek};`;
 		}
-		return this.db.run`
+		return this.db`
                 SELECT userid, starttime, endtime
                 FROM booking
                 WHERE starttime >= ${startWeek} 
@@ -76,10 +76,12 @@ export class Database {
 	}
 
 	async getBooking(id) {
-		return this.db.run`
-                SELECT *
-                FROM booking
-                WHERE id = ${id};`;
+		const result = await this.db`
+            SELECT *
+            FROM booking
+            WHERE id = ${id}
+            LIMIT 1;`;
+		return result[0];
 	}
 
 	/**
@@ -88,7 +90,7 @@ export class Database {
 	 * @returns
 	 */
 	async deleteBooking(id) {
-		return this.db.run`
+		return this.db`
                 DELETE FROM booking
                 WHERE id = ${id};`;
 	}
@@ -101,7 +103,7 @@ export class Database {
 	 * @returns
 	 */
 	async editBooking(id, startTime, endTime) {
-		return this.db.run`
+		return this.db`
                 UPDATE booking SET startTime = ${startTime}, endTime = ${endTime} WHERE id = ${id} RETURNING *;`;
 	}
 
@@ -267,10 +269,7 @@ export class Database {
             FROM "location"
             WHERE id = ${id}
         `;
-		if (location.length === 0) {
-			return null; //altrimenti è sempre vero
-		}
-		return location;
+		return location[0] ?? null;
 	}
 
 	async addLocation(id, name) {
@@ -374,17 +373,35 @@ export class Database {
 	 * @param {string} locationId
 	 * @param {boolean} approved
 	 */
-	addEntrance(userId, time, locationId, approved) {
-		return this.db.run`
-			    INSERT INTO "audit" (userId, startTime, location, approved) 
-                VALUES (${userId}, ${time}, ${locationId}, ${approved});
-		        RETURNING *`;
+	async addEntrance(userId, timeIn, timeOut, locationId, motivation, approved) {
+		if (timeOut == null) {
+			return (
+				(
+					await this.db`
+			    INSERT INTO audit (userId, startTime, location, approved)  
+                VALUES (${userId}, ${timeIn},${locationId},${approved})
+		        RETURNING *;`
+				)[0] ?? null
+			);
+		}
+
+		return this.db`
+			    INSERT INTO "audit" (userId, startTime, endTime, location, motivation,approved) 
+                VALUES (${userId}, ${timeIn}, ${timeOut}, ${locationId}, ${motivation},${approved})
+		        RETURNING *;`;
 	}
 
-	alreadyLogged(userId) {
-		let logged = this.db.run`SELECT * FROM "audit" 
-        WHERE userId = ${userId} AND endTime IS NULL;`;
-		return logged.rows && logged.rows.length > 0;
+	async alreadyLogged(userId) {
+		return (
+			(
+				await this.db`
+		SELECT id FROM audit 
+		WHERE userId = ${userId} AND endTime IS NULL 
+		ORDER BY startTime DESC
+		LIMIT 1
+	`
+			)[0] ?? null
+		); // <-- restituisce l'oggetto o null
 	}
 
 	/**
@@ -419,56 +436,29 @@ export class Database {
 	 * @param {boolean} approved
 	 * @param {string} motivation   mandatory
 	 */
-	async addExit(userId, time, approved, motivation) {
-		let entrance = await this.db.oneOrNone(
-			`
-            SELECT * FROM "audit"
-            WHERE "userId" = $1 AND "startTime" = (
-                SELECT MAX("startTime")
-                FROM "audit"
-                WHERE "userId" = $1 AND "endTime" IS NULL AND startTime < $2
-            )
-            ORDER BY "startTime" DESC;
-        `,
-			[userId, time],
-		);
-		if (entrance) {
-			let approval = approved && entrance.approved;
-			return this.db.run`
-                UPDATE audit SET endTime = ${time},
-                                 approved = ${approval},
-                                 motivation = ${motivation}
-                WHERE id = ${entrance.id} RETURNING *;`;
-		} else {
-			res.status(400).json({ error: "The entrance has not been registered." });
-		}
+	async addExit(Id, time, motivation) {
+		return this.db`
+    UPDATE audit 
+    SET endTime = ${time}, motivation = ${motivation} 
+    WHERE id = ${Id} 
+    RETURNING *;`;
 	}
 
 	async getAudit(id) {
-		const audit = await db.oneOrNone(
-			`SELECT * 
-        FROM "audit"
-        WHERE id = $1`,
-			[id],
+		return (
+			(
+				await this.db`
+		SELECT * 
+		FROM audit
+		WHERE id = ${id}
+	`
+			)[0] ?? null
 		);
-		return audit;
 	}
 
-	editAudit(id, updates) {
-		let query = 'UPDATE "audit" SET';
-		const values = [];
-		let index = 1;
-
-		for (const field in updates) {
-			if (index > 1) query += `,`;
-			query += ` ${field} = $${index}`;
-			values.push(updates[field]);
-			index++;
-		}
-		query += ` WHERE id = $${index} RETURNING *;`;
-		values.push(id);
-
-		return this.db.query(query, values);
+	async editAudit(id, startTime, endTime, motivation, approved, location) {
+		return this.db`
+		UPDATE audit SET startTime = ${startTime}, endTime = ${endTime}, motivation = ${motivation}, approved = ${approved}, location =${location} WHERE id = ${id} RETURNING *;`;
 	}
 
 	/**
@@ -477,36 +467,25 @@ export class Database {
 	 * @param {number=} end
 	 * @param {string[]=} users
 	 */
-	getAudits(start, end, users) {
-		let query = `SELECT * FROM "audit"`;
-		const values = [];
-		let index = 1;
-		let conditions = [];
-
-		if (!isNaN(start)) {
-			conditions.push(`start = $${index}`);
-			values.push(start);
-			index++;
+	async getAudits(startWeek, endWeek, users) {
+		if (users == null || users.length == 0) {
+			return this.db`
+                SELECT *
+                FROM audit
+                WHERE starttime>=${startWeek} AND endtime<=${endWeek};`;
 		}
-		if (!isNaN(end)) {
-			conditions.push(`end = $${index}`);
-			values.push(end);
-			index++;
-		}
-		if (users != null && users.length != 0) {
-			const userPlaceholders = users.map((x, i) => `$${index + i}`).join(", ");
-			conditions.push(`userid IN (${userPlaceholders})`);
-			values.push(...users);
-			index += users.length;
-		}
+		return this.db`
+                SELECT *
+                FROM audit
+                WHERE starttime >= ${startWeek} 
+                        AND endtime <= ${endWeek}
+                        AND userid IN (${sql(users)});`;
+	}
 
-		if (conditions.length > 0) {
-			query += ` WHERE ` + conditions.join(" AND ");
-		}
-
-		query += `;`;
-
-		return this.db.run(query, values);
+	deleteAudit(auditId) {
+		return this.db`
+            DELETE FROM audit WHERE id = ${auditId};
+        `;
 	}
 
 	// #endregion

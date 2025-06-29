@@ -4,8 +4,11 @@ import { db, io } from "./index.js";
 import { authAdmin, authRO, authRW, validateSession } from "./authorization.js";
 import dayjs from "dayjs";
 import cookieParser from "cookie-parser";
-import { isSafeReturnUrl, toUnixTimestamp } from "./utils.js";
+import Time from "./time.js";
+import { toUnixTimestamp } from "./utils.js";
 import QRCode from "qrcode";
+import isoWeek from "dayjs/plugin/isoWeek.js";
+dayjs.extend(isoWeek);
 
 const router = express.Router();
 router.use(cookieParser());
@@ -14,11 +17,12 @@ router.use(validateSession);
 
 router.get("/ping", async (req, res) => {
 	res.send("pong");
+	console.log("Ciao mondo!");
 	//res.json(await db.generateToken(true, false, "weeetofono"));
 });
 
 if (config.testMode) {
-	router.get("/login", async (req, res) => {
+	router.get("/user/session", async (req, res) => {
 		if (req.query.uid) {
 			let user = await db.getUser(req.query.uid);
 			if (user) {
@@ -27,23 +31,9 @@ if (config.testMode) {
 					`${req.ip} - ${req.get("User-Agent")}`,
 				);
 				res.cookie("session", cookie);
-				if (req.cookies.return) {
-					if (!isSafeReturnUrl(req.query.return)) {
-						return res.status(400).send("Bad return URL provided");
-					}
-					res.clearCookie("return").redirect(decodeURIComponent(req.cookies.return));
-					return;
-				}
-				res.redirect("/api/v1/login"); // prevent reloading from generating a new cookie
+				res.redirect("/api/v1/user/session"); // prevent reloading from generating a new cookie
 				return;
 			}
-		} else if (req.query.return) {
-			if (!isSafeReturnUrl(req.query.return)) {
-				return res.status(400).send("Bad return URL provided");
-			}
-			res.cookie("return", req.query.return);
-			res.redirect("/api/v1/login");
-			return;
 		}
 		let page = `
 		<!DOCTYPE html>
@@ -66,44 +56,27 @@ if (config.testMode) {
 		res.send(page);
 	});
 } else {
-	router.get("/login", async (req, res) => {
+	router.get("/user/session", async (req, res) => {
 		if (req.session) {
-			if (req.query.return) {
-				return res.clearCookie("return").redirect(decodeURIComponent(req.query.return));
-			} else {
-				return res.status(400).send("Already authenticated");
-			}
+			res.status(400).send("Already authenticated");
 			return;
 		}
 		if (!req.query.code) {
-			if (req.query.return) {
-				if (!isSafeReturnUrl(req.query.return)) {
-					return res.status(400).send("Bad return URL provided");
-				}
-				res.cookie("return", req.query.return);
-			}
 			res.redirect(config.ssoRedirect);
 			return;
 		}
 		// TODO: validate sso and return a session cookie
-		// !! remember to revalidate return url and then redirect if present and clear it!
 		res.sendStatus(501); // temp
 	});
 }
 
 router.get("/user", authRW, async (req, res) => {
+	console.log(req.session);
 	res.json(req.session);
 });
 
-router.get("/logout", authRW, async (req, res) => {
-	await db.deleteCookie(req.cookies.session);
-	res.clearCookie("session");
-	res.sendStatus(204);
-});
-
-router.delete("/session", authRW, async (req, res) => {
+router.delete("/user/session", authRW, async (req, res) => {
 	if (req.session.type == "api") {
-		// TODO reevalutate this
 		if (req.session.isAdmin) {
 			await db.deleteApiKey(req.session.id);
 			res.sendStatus(204);
@@ -115,12 +88,6 @@ router.delete("/session", authRW, async (req, res) => {
 	await db.deleteCookie(req.cookies.session);
 	res.clearCookie("session");
 	res.sendStatus(204);
-});
-
-router.get("/config", authRO, (req, res) => {
-	res.json({
-		servicesLinks: config.servicesLinks,
-	});
 });
 
 router.get("/lab/info", authRO, (req, res) => {
@@ -136,6 +103,10 @@ router.get("/lab/info", authRO, (req, res) => {
 //router.post('/lab/in');
 //router.post('/lab/out');
 router.post("/lab/ring", authRW, async (req, res) => {
+	if (req.session.isReadOnly) {
+		res.status(403).send("Forbidden");
+		return;
+	}
 	try {
 		await io.timeout(10000).emitWithAck("ring"); // in the future perhaps we can add a parameter to specify which bell to ring
 		res.sendStatus(204);
@@ -213,52 +184,73 @@ router.delete("/events/:id", authAdmin, async (req, res) => {
 // #region bookings
 
 /*
-    Create a booking
+	Create a booking
 */
 router.post("/bookings/new", authRW, async (req, res) => {
-	var inTime = parseInt(req.body.startTime);
-	var endTime = parseInt(req.body.endTime);
+	var inTime = toUnixTimestamp(req.body.startTime);
+	var endTime = toUnixTimestamp(req.body.endTime);
 
-	if (inTime == NaN || dayjs.unix(inTime).isBefore(dayjs())) {
+	if (isNaN(inTime) || dayjs.unix(inTime).isBefore(dayjs())) {
 		res.status(400).json({ error: "Invalid time" });
 		return;
 	}
-	if (endTime != NaN && dayjs.unix(inTime).isAfter(dayjs.unix(endTime))) {
+
+	if (req.session.isAdmin && isNaN(endTime)) {
+		res.status(400).json({ error: "Gli admin DEVONO inserire una data di uscita" });
+		return;
+	}
+
+	if (isNaN(inTime) && dayjs.unix(inTime).isAfter(dayjs.unix(endTime))) {
 		res.status(400).json({ error: "End time is before start time" });
 		return;
 	}
+
 	if (endTime == NaN) endTime = null;
-	let booking = await db.addBooking(req.body.user, inTime, endTime);
+	let booking = await db.addBooking(req.session.user.id, inTime, endTime);
 	res.status(200).json(booking);
 });
 
 /*
-    Get all bookings
+	Get all bookings of this week or a given week
 */
 router.get("/bookings", authRO, async (req, res) => {
-	let week = parseInt(req.query.week);
-	let year = parseInt(req.query.year);
-	let users = req.query.user.split(",");
-	let date = dayjs();
-	if (week != NaN && year != NaN) {
-		date = date.year(year).isoWeek(week);
-	} else if (week != NaN || year != NaN) {
-		res.status(400).send("missing week/year");
-		return;
-	}
-	let startWeek = date.startOf("isoWeek");
-	let endWeek = date.endOf("isoWeek");
+	let date = toUnixTimestamp(req.body.dateString);
+	let userId;
+	let startWeek;
+	let endWeek;
 
-	const bookings = await db.getBookings(startWeek, endWeek, users);
+	if (!isNaN(date)) {
+		startWeek = date.startOf("isoWeek").unix();
+		endWeek = date.endOf("isoWeek").unix();
+	} else {
+		startWeek = dayjs().startOf("isoWeek").unix();
+		endWeek = dayjs().endOf("isoWeek").unix();
+	}
+	if (req.body.user == null || req.body.user == undefined) {
+		userId = null;
+	} else {
+		userId = req.body.user;
+	}
+
+	const bookings = await db.getBookings(startWeek, endWeek, userId);
 	res.json(bookings);
 });
 
 /*
-    Delete a booking
+	Get a booking given the id
+*/
+router.get("/bookings/:id", authRO, async (req, res) => {
+	const bookings = await db.getBooking(req.params.id);
+	res.json(bookings);
+});
+
+/*
+	Delete a booking
 */
 router.delete("/bookings/:id", authRW, async (req, res) => {
-	let booking = db.getBooking(req.params.id);
-	if (booking.userId != req.user.id && !req.user.isAdmin) {
+	let booking = await db.getBooking(req.params.id);
+	console.log(req.session.isAdmin);
+	if (booking.userId != req.session.user.id && !req.session.isAdmin) {
 		res.status(403).send("Not authorized");
 		return;
 	}
@@ -267,63 +259,41 @@ router.delete("/bookings/:id", authRW, async (req, res) => {
 });
 
 /*
-    Edit a booking
+	Edit a booking
 */
 router.post("/bookings/:id", authRW, async (req, res) => {
-	let booking = db.getBooking(req.params.id);
-	if (booking.userId != req.user.id && !req.user.isAdmin) {
+	let booking = await db.getBooking(req.params.id);
+
+	// Booking non trovato
+	if (!booking) {
+		res.status(404).send("Booking not found");
+		return;
+	}
+
+	// Autorizzazione
+	if (booking.userid != req.session.user.id && !req.session.isAdmin) {
 		res.status(403).send("Not authorized");
 		return;
 	}
-	var inTime = parseInt(req.body.startTime);
-	var endTime = parseInt(req.body.endTime);
 
-	if (inTime == NaN || dayjs.unix(inTime).isBefore(dayjs())) {
+	// Validazione input
+	const inTime = toUnixTimestamp(req.body.startTime);
+	const endTime = toUnixTimestamp(req.body.endTime);
+
+	if (isNaN(inTime) || dayjs.unix(inTime).isBefore(dayjs())) {
 		res.status(400).json({ error: "Invalid time" });
 		return;
 	}
-	if (endTime != NaN && dayjs.unix(inTime).isAfter(dayjs.unix(endTime))) {
+
+	if (!isNaN(endTime) && dayjs.unix(inTime).isAfter(dayjs.unix(endTime))) {
 		res.status(400).json({ error: "End time is before start time" });
 		return;
 	}
-	if (endTime == NaN) endTime = null;
-	await db.editBooking(booking.id, inTime, endTime);
-	res.sendStatus(200).send();
-});
 
-// region tokens
+	const finalEndTime = isNaN(endTime) ? null : endTime;
 
-//loggedIn.get('/tokens');
-//loggedIn.post('/tokens/new');
-//loggedIn.delete('/bookings/:id');
-
-/* 
-	Get all tokens
-*/
-router.get("/tokens", authAdmin, async (req, res) => {
-	let tokens = await db.getApiTokens();
-	res.json(tokens);
-});
-
-/*
-  Get a token by id
-*/
-router.get("/tokens/:id", authAdmin, async (req, res) => {
-	let token = await db.getApiToken(req.params.id);
-	res.json(token);
-});
-
-/*
- Generate a token
-*/
-router.post("/tokens/new", authAdmin, async (req, res) => {
-	if (req.body.readonly && req.body.admin) {
-		return res
-			.status(400)
-			.json({ error: "Cannot generate an api token with both readonly and admin permissions" });
-	}
-	let result = await db.generateApiToken(req.body.readonly, req.body.admin, req.body.description);
-	res.status(200).json(result);
+	await db.editBooking(booking.id, inTime, finalEndTime);
+	res.sendStatus(200);
 });
 
 /*
@@ -391,9 +361,28 @@ router.post("/lab/out", authRW, async (req, res) => {
 	let audit = await addExit(req.user.id, outTime, req.user.isAdmin, req.body.motivation);
 	res.status(200).json(audit);
 });
+// region audits
+
+/*
+// inizio fine settimana
+function getMonday(d) {
+	d = new Date(d);
+	var day = d.getDay(),
+		diff = d.getDate() - day + (day == 0 ? -6 : 1); // adjust when day is sunday
+	return new Date(d.setDate(diff));
+}
+
+function getSunday(fromDate = new Date()) {
+	const date = new Date(fromDate); 
+	const day = date.getDay();       
+	const diff = (7 - day) % 7;      
+	date.setDate(date.getDate() + diff);
+	return date;
+}
+*/
 
 /**
- * Edit audit
+ * get audit
  *
  * Body can contain:
  * {number=} startTime
@@ -402,44 +391,167 @@ router.post("/lab/out", authRW, async (req, res) => {
  * {boolean=} approved
  * {string=} location
  */
-router.patch("/audits/:id", authRW, async (req, res) => {
-	let auditId = req.params.id;
-	let audit = getAudit(auditId);
-	if (!audit) {
-		res.status(400).json({ error: "Invalid audit id" });
-		return;
+
+//ritorna solo la settimana corrente
+router.get("/audits", authRW, async (req, res) => {
+	startWeek = dayjs().startOf("isoWeek").unix();
+	endWeek = dayjs().endOf("isoWeek").unix();
+
+	if (req.body.user == null || req.body.user == undefined) {
+		userId = null;
+	} else {
+		userId = req.body.user;
 	}
-	if (!req.user.isAdmin) {
-		res.status(400).json({ error: "Operation not allowed" });
-		return;
-	}
-	let startTime = parseInt(req.body.startTime);
-	let endTime = parseInt(req.bpdy.endTime);
-	if (startTime == NaN) startTime = audit.startTime;
-	if (endTime == NaN) endTime = audit.endTime;
-	if (dayjs.unix(inTime).isAfter(dayjs.unix(endTime))) {
-		res.status(400).json({ error: "Invalid time" });
-		return;
-	}
-	let params = req.body;
-	let edAudit = editAudit(auditId, params);
-	res.status(200).json(edAudit);
+
+	let weekAudit = await db.getAudits(startWeek, endWeek, userId);
+	res.status(200).json(weekAudit);
 });
 
-/**
- * Show audits
- *
- * {number=} start
- * {number=} end
- * {sring[]=} users
- */
-router.get("/audits", authRO, async (req, res) => {
-	let start = parseInt(req.query.start);
-	let end = parseInt(req.query.end);
-	let users = req.query.user.split(",");
+dayjs.extend(isoWeek);
 
-	const audits = getAudits(start, end, users);
-	res.json(audits);
+//returns given date week, if userId is present it also gives only the user
+router.post("/audits", authRW, async (req, res) => {
+	let userId = req.body.user ?? null;
+	let dateInput = req.body.dateString;
+	let baseDate = dayjs(dateInput);
+	if (!baseDate.isValid()) {
+		baseDate = dayjs(); // settimana corrente se la data non è valida
+	}
+	const startWeek = baseDate.startOf("isoWeek").unix(); // in secondi
+	const endWeek = baseDate.endOf("isoWeek").unix();
+
+	let weekAudit = await db.getAudits(startWeek, endWeek, userId);
+	res.status(200).json(weekAudit);
+});
+
+router.get("/audit/:id", authRW, async (req, res) => {
+	let audit = await db.getAudit(req.params.id);
+	if (!audit) {
+		res.status(404).send("Audit not found");
+		return;
+	}
+	res.status(200).json(audit);
+});
+/*
+router.post('/audits/new', authRW, async (req, res) => {
+
+	let inTime = toUnixTimestamp(req.body.startTime);
+	let endTime = toUnixTimestamp(req.body.endTime);
+	let approved = false;
+
+	if (endTime == NaN) endTime = null;
+	if (req.session.isAdmin) approved = true;
+	if (alreadyLogged(req.body.userId) != null) {
+		res.status(500).json("already logged");
+	}
+
+	let audits = await db.addEntrance(req.body.id, inTime, endTime, req.body.locationId, approved);
+	res.status(200).json(audits);
+});*/
+
+//usato per entrare ed uscire
+router.post("/audits/new", authRW, async (req, res) => {
+	let inTime = toUnixTimestamp(req.body.startTime);
+	let endTime = toUnixTimestamp(req.body.endTime);
+	let approved = false;
+	let motivation = req.body.motivation;
+	if (inTime == undefined || isNaN(endTime)) inTime = Math.floor(Date.now() / 1000);
+	if (endTime == undefined || isNaN(endTime)) endTime = null;
+	if (motivation == undefined) motivation = null;
+	if (req.session.isAdmin) approved = true;
+
+	const alLog = await db.alreadyLogged(req.body.userId);
+
+	if (alLog != null) {
+		let audits = await db.addExit(alLog.id, Math.floor(Date.now() / 1000), motivation);
+
+		res.status(200).json(audits);
+		return;
+	}
+
+	let audits = await db.addEntrance(
+		req.body.userId,
+		inTime,
+		endTime,
+		req.body.locationId,
+		motivation,
+		approved,
+	);
+
+	res.status(200).json(audits);
+});
+
+router.patch("/audits/:id", authRW, async (req, res) => {
+	let startTime, endTime, motivation, location;
+	let approved = false;
+	if (req.session.isAdmin) approved = true;
+
+	let audit = await db.getAudit(req.params.id);
+
+	if (audit == null || audit == NaN) {
+		res.status(500).json("req audit not found");
+		return;
+	}
+	if (audit.userid != req.session.user.id && !req.session.isAdmin) {
+		res.status(403).send("Not authorized");
+		return;
+	}
+	if (req.session.isAdmin && req.body.approved) {
+		approved = true;
+		return;
+	}
+
+	if (req.body.startTime != null) {
+		startTime = req.body.startTime;
+	} else {
+		startTime = audit.startTime;
+	}
+
+	if (req.body.endTime != null) {
+		endTime = req.body.endTime;
+	} else {
+		endTime = audit.endTime;
+	}
+
+	if (req.body.motivation != null) {
+		motivation = req.body.motivation;
+	} else {
+		motivation = audit.motivation;
+	}
+
+	if (req.body.location != null) {
+		location = req.body.location;
+	} else {
+		location = audit.location;
+	}
+	console.log(req.params);
+
+	let audits = await db.editAudit(
+		req.params.id,
+		startTime,
+		endTime,
+		motivation,
+		approved,
+		location,
+	);
+	res.status(200).json(audits);
+});
+
+router.delete("/audits/:id", authRW, async (req, res) => {
+	let audit = await db.getAudit(req.params.id);
+
+	if (!audit) {
+		res.status(404).send("Audit not found");
+		return;
+	}
+
+	if ((audit.userid != req.session.user.id || audit.approved) && !req.session.isAdmin) {
+		res.status(403).send("Not authorized");
+		return;
+	}
+
+	await db.deleteAudit(req.params.id);
+	res.status(204).send();
 });
 
 // #endregion
@@ -467,7 +579,7 @@ router.post("/locations/new", authAdmin, async (req, res) => {
 
 router.patch("/locations/:id", authAdmin, async (req, res) => {
 	let locationsid = req.params.id;
-	let location = db.getLocation(locationsid);
+	let location = await db.getLocation(locationsid);
 	if (!location) {
 		res.status(400).json({ error: "Invalid location id" });
 		return;

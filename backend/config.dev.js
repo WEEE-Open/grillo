@@ -24,7 +24,8 @@ const config = {
 			link: "https://tarallo.weeeopen.it/",
 			icon: "mdi-circle-double",
 			title: "Tarallo",
-			subtitle: "Tuttofare Assistente il Riuso di Aggeggi Logori e Localmente Opprimenti (aka L'inventario Opportuno)",
+			subtitle:
+				"Tuttofare Assistente il Riuso di Aggeggi Logori e Localmente Opprimenti (aka L'inventario Opportuno)",
 		},
 		{
 			link: "https://crauto.weeeopen.it/",
@@ -43,7 +44,7 @@ const config = {
 			icon: "mdi-book-outline",
 			title: "Wiki",
 			subtitle: "Wisdom Integrata per la Konoscenza Illimitata",
-		}
+		},
 	],
 };
 

@@ -4,8 +4,7 @@ import { RouterView } from "vue-router";
 
 export default {
 	components: { RouterView },
-	mounted() {
-	},
+	mounted() {},
 };
 </script>
 <template>

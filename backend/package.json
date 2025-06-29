@@ -1,6 +1,7 @@
 {
 	"name": "backend",
 	"scripts": {
+		"start": "node index.js",
 		"dev": "nodemon --trace-warnings index.js",
 		"prod": "node index.js --prod"
 	},
