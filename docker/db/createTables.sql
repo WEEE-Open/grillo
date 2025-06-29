@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS "audit" (
     userId VARCHAR(255) NOT NULL, 
     startTime INTEGER NOT NULL, 
     endTime INTEGER, 
+    location VARCHAR NOT NULL,
     motivation TEXT, 
     approved BOOLEAN DEFAULT FALSE,
     location VARCHAR(255) NOT NULL,
@@ -26,7 +27,9 @@ CREATE TABLE IF NOT EXISTS "booking" (
     userId VARCHAR(255) NOT NULL, 
     startTime INTEGER NOT NULL,
     endTime INTEGER,
-    FOREIGN KEY(userId) REFERENCES "user"(id)
+    location VARCHAR(255) NOT NULL,
+    FOREIGN KEY(userId) REFERENCES "user"(id),
+    FOREIGN KEY(location) REFERENCES "location"(id)
 );
 
 CREATE TABLE IF NOT EXISTS "cookie" (
@@ -85,6 +88,10 @@ CREATE TABLE IF NOT EXISTS "event" (
     description TEXT
 );
 
+CREATE TABLE IF NOT EXISTS "config" (
+    id VARCHAR(255) PRIMARY KEY NOT NULL,
+    value TEXT
+);
 
 
 CREATE OR REPLACE FUNCTION update_user_seconds()

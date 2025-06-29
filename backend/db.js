@@ -552,10 +552,10 @@ export class Database {
 		return event[0];
 	}
 
-	async addEvent(id, startTime, endTime, title, description) {
+	async addEvent(startTime, endTime, title, description) {
 		const event = await this.db`
             INSERT INTO event
-            VALUES (${id},${startTime},${endTime},${title},${description})
+            VALUES (DEFAULT,${startTime},${endTime},${title},${description})
             RETURNING *;
         `;
 		return event[0];
@@ -564,7 +564,7 @@ export class Database {
 	async editEvent(id, startTime, endTime, title, description) {
 		const event = await this.db`
         UPDATE event
-        SET  starttime = ${startTime},endtime=${endTime},title=${title},description = ${description}
+        SET  starttime=${startTime},endtime=${endTime},title=${title},description=${description}
         WHERE id = ${id}
         RETURNING *;
     `;
@@ -620,19 +620,13 @@ export class Database {
 		}
 	}
 
-	async getUserByCode(code) {
-		try {
-			const userId = await this.db`
-				 SELECT userId
-				 FROM codes
-				 WHERE code = ${code}
-			`;
-			return userId;
-		} catch (e) {
-			if (e.code != "23505") {
-				throw e;
-			}
-		}
+	async getCode(code) {
+		const userId = await this.db`
+			SELECT *
+			FROM codes
+			WHERE code = ${code}
+		`;
+		return userId[0] ?? null;
 	}
 
 	async assignCode(code, userId) {
@@ -645,7 +639,24 @@ export class Database {
 
 	async deleteCode(code) {
 		return await this.db`
-                DELETE FROM codes
-                WHERE code = ${code};`;
+			DELETE FROM codes
+			WHERE code = ${code}`;
+	}
+
+	async getConfig(id) {
+		let values = await this.db`
+			SELECT value
+			FROM config
+			WHERE id = ${id}
+			LIMIT 1`;
+		if (values.length == 0) return null;
+		return values[0];
+	}
+
+	async setConfig(id, value) {
+		return await this.db`
+			INSERT INTO config (id, value)
+			VALUES (${id}, ${value})
+			ON CONFLICT (id) DO UPDATE SET value = ${value}`;
 	}
 }

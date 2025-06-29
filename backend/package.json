@@ -19,6 +19,7 @@
 		"node-schedule": "^2.1.1",
 		"postgres": "^3.4.4",
 		"qrcode": "^1.5.4",
-		"socket.io": "^4.7.5"
+		"socket.io": "^4.7.5",
+		"valibot": "^1.1.0"
 	}
 }

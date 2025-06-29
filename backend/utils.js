@@ -1,5 +1,3 @@
-import Time from "./time.js";
-
 export function toUnixTimestamp(dateString) {
 	// Dividere la stringa in giorno, mese, anno, ore e minuti
 	const [day, month, year, hours, minutes] = dateString.match(/\d+/g).map(Number);
