@@ -36,35 +36,54 @@ export const auditsIdNew = {
     auth: 'RW',
     method: 'POST',
     route: "/audits",
-    body: v.pipe(
-        v.object({
-            user: v.nullish(v.string()),
-            approved: v.boolean(),
-            motivation: v.nullish(v.pipe(v.string(), v.trim(), v.nonEmpty())),
-            location: v.nullish(v.string()),
-            startTime: v.nullish(v.pipe(
-                v.union([
-                    v.pipe(v.string(), v.transform(Number.parseInt), v.check((v) => !Number.isNaN(v))),
-                    v.number()
-                ]),
-                v.transform(Math.round)
-            ])),
-            endTime: v.nullish(v.pipe(
-                v.union([
-                    v.pipe(v.string(), v.transform(Number.parseInt), v.check((v) => !Number.isNaN(v))),
-                    v.number()
-                ]),
-                v.transform(Math.round)
-            ]))
-        }),
-        v.check((input) => {
-            if (input.startTime && input.endTime) {
-                return input.startTime < input.endTime;
-            }
-            return true;
-        }, "The end time must be greater than the start time.")
-    ),
+    body: v.variant('login', [
+  v.object({
+    login: v.literal(true),
+    user: v.nullish(v.pipe(v.string(), v.trim(), v.nonEmpty())),
+    location: v.nullish(v.pipe(v.string(), v.trim(), v.nonEmpty())),
+    approved: v.nullish(v.boolean()),
+    startTime: v.nullish(v.pipe(
+      v.union([
+          v.pipe(v.string(), v.transform(Number.parseInt), v.check((v) => !Number.isNaN(v))),
+          v.number()
+      ]),
+      v.transform(Math.round)
+    )),
+    previousSummary: v.nullish(v.pipe(v.string(), v.trim(), v.nonEmpty())),
+  }),
+  v.pipe(
+    v.object({
+      login: v.nullish(v.literal(false)),
+      user: v.nullish(v.pipe(v.string(), v.trim(), v.nonEmpty())),
+      location: v.nullish(v.pipe(v.string(), v.trim(), v.nonEmpty())),
+      approved: v.nullish(v.boolean()),
+      summary: v.pipe(v.string(), v.trim(), v.nonEmpty()),
+      startTime: v.pipe(
+        v.union([
+            v.pipe(v.string(), v.transform(Number.parseInt), v.check((v) => !Number.isNaN(v))),
+            v.number()
+        ]),
+        v.transform(Math.round)
+      ),
+      endTime: v.pipe(
+        v.union([
+            v.pipe(v.string(), v.transform(Number.parseInt), v.check((v) => !Number.isNaN(v))),
+            v.number()
+        ]),
+        v.transform(Math.round)
+      ),
+    }),
+    v.check((input) => {
+        if (input.startTime && input.endTime) {
+            return input.startTime < input.endTime;
+        }
+        return true;
+    }, "The end time must be greater than the start time.")
+  )
+]),
     async handler(req, res) {
+        if (!req.body.user)
+            req.body.user = req.session.user.id;
         if (!req.session.isAdmin) {
             req.body.approved = false;
             if (req.user && req.user != req.session.user.id) {
@@ -72,17 +91,8 @@ export const auditsIdNew = {
             }
         }
 
-        // TODO: rework this logic
-        const alLog = await db.alreadyLogged(req.body.userId);
-
-        if (alLog != null) {
-            if (req.body.motivation == null) {
-                return res.status(400).json({ error: "Must provide motivation at logout"});
-            }
-            let audits = await db.addExit(alLog.id, Math.floor(Date.now() / 1000), req.body.motivation);
-
-            return res.json(audits);
-        }
+        if (!req.body.location)
+            req.body.location = db.getConfig('defaultLocation');
 
         let location = db.getLocation(req.body.location);
 
@@ -90,7 +100,42 @@ export const auditsIdNew = {
             return res.status(404).json({ error: "Location not found"});
         }
 
-        let audits = await db.addEntrance(
+        if (req.body.login) {
+            const activeAudit = await db.getActiveAudit(req.body.userId);
+
+            let oldAudit;
+            if (activeAudit) {
+                if (!req.body.previousSummary) {
+                    res.status(400).json({ error: "Must provide summary when switching location" });
+                }
+                if (!req.body.endTime)
+                    req.body.endTime = Math.floor(Date.now() / 1000);
+                oldAudit = db.editAudit(
+                    activeAudit.id,
+                    activeAudit.starttime,
+                    req.body.endTime,
+                    req.body.previousSummary,
+                    req.body.approved,
+                    req.body.location
+                );
+            }
+
+            let newAudit = await db.addAudit(
+                req.body.user,
+                req.body.startTime,
+                null,
+                location.id,
+                null,
+                null
+            );
+
+            return res.json({...newAudit, previous: oldAudit});
+        }
+
+        if (!req.body.endTime)
+            req.body.endTime = Math.floor(Date.now() / 1000);
+
+        let audit = await db.addAudit(
             req.body.user,
             req.body.startTime,
             req.body.endTime,
@@ -98,8 +143,7 @@ export const auditsIdNew = {
             req.body.motivation,
             req.body.approved,
         );
-
-        res.json(audits);
+        res.json(audit);
     }
 }
 

@@ -295,7 +295,7 @@ export class Database {
         DELETE FROM location
         WHERE id = ${id}
         RETURNING *;
-    	`;
+		`;
 		return result[0];
 	}
 
@@ -373,25 +373,25 @@ export class Database {
 	 * @param {string} locationId
 	 * @param {boolean} approved
 	 */
-	async addEntrance(userId, timeIn, timeOut, locationId, motivation, approved) {
+	async addAudit(userId, timeIn, timeOut, locationId, motivation, approved) {
 		if (timeOut == null) {
 			return (
 				(
 					await this.db`
-			    INSERT INTO audit (userId, startTime, location, approved)  
+				INSERT INTO audit (userId, startTime, location, approved)  
                 VALUES (${userId}, ${timeIn},${locationId},${approved})
 		        RETURNING *;`
-				)[0] ?? null
+				)[0]
 			);
 		}
 
 		return this.db`
-			    INSERT INTO "audit" (userId, startTime, endTime, location, motivation,approved) 
-                VALUES (${userId}, ${timeIn}, ${timeOut}, ${locationId}, ${motivation},${approved})
-		        RETURNING *;`;
+			INSERT INTO "audit" (userId, startTime, endTime, location, motivation,approved) 
+			VALUES (${userId}, ${timeIn}, ${timeOut}, ${locationId}, ${motivation},${approved})
+			RETURNING *;`[0];
 	}
 
-	async alreadyLogged(userId) {
+	async getActiveAudit(userId) {
 		return (
 			(
 				await this.db`
@@ -427,21 +427,6 @@ export class Database {
 			const toDeleteId = res.rows.map(row => row.id);
 			this.deleteBooking(toDeleteId);
 		}
-	}
-
-	/**
-	 *
-	 * @param {string} userId
-	 * @param {number} time     exit time
-	 * @param {boolean} approved
-	 * @param {string} motivation   mandatory
-	 */
-	async addExit(Id, time, motivation) {
-		return this.db`
-    UPDATE audit 
-    SET endTime = ${time}, motivation = ${motivation} 
-    WHERE id = ${Id} 
-    RETURNING *;`;
 	}
 
 	async getAudit(id) {
