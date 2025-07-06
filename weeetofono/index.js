@@ -9,8 +9,18 @@ const socket = io.connect(config.serverUrl, {
 	},
 });
 
-socket.on("connect", () => {
+socket.on("connect", async () => {
 	console.log("Connected");
+	try {
+		const res = await socket.emitWithAck("joinLocation", { locationId: config.location });
+		if (res.error) {
+			console.log("Error joining room", res.error);
+		} else {
+			console.log("Successfully joined " + res.location);
+		}
+	} catch (e) {
+		console.log(e);
+	}
 });
 
 socket.on("disconnect", () => {

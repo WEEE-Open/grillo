@@ -1,5 +1,5 @@
 {
-  "url": "http://localhost:3000/api/v1/locations/new",
+  "url": "http://localhost:3000/api/v1/locations",
   "params": {},
   "paramsArray": [],
   "headers": {

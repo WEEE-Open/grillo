@@ -130,7 +130,7 @@ export const useServer = defineStore("server", {
 		},
 
 		async createToken(token) {
-			let [request, abort] = this.makeRequest("POST", "/tokens/new", {
+			let [request, abort] = this.makeRequest("POST", "/tokens", {
 				description: token.description,
 				readonly: token.readonly,
 				admin: token.admin,
@@ -156,7 +156,7 @@ export const useServer = defineStore("server", {
 			}
 		},
 		async createLocation(location) {
-			let [request, abort] = this.makeRequest("POST", "/locations/new", {
+			let [request, abort] = this.makeRequest("POST", "/locations", {
 				id: location.id,
 				name: location.name,
 			});

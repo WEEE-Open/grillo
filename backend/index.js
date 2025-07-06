@@ -15,7 +15,7 @@ export const argv = yargs(process.argv)
 	.help()
 	.alias("help", "h").argv;
 
-import api from "./api.js";
+import api from "./api/index.js";
 import { Database } from "./db.js";
 
 export const db = new Database(config);
@@ -37,6 +37,21 @@ io.use(async (socket, next) => {
 		return next();
 	}
 	next(new Error("Authentication error"));
+});
+
+io.on("connection", socket => {
+	socket.on("joinLocation", async (params, ack) => {
+		if (params.locationId == "default") {
+			params.locationId = await db.getConfig("defaultLocation");
+		}
+		const location = await db.getLocation(params.locationId);
+		if (!location) {
+			ack({ error: "Location not found" });
+		} else {
+			socket.join(params.locationId);
+			ack({ success: true, location: params.locationId });
+		}
+	});
 });
 
 if (argv.prod) {

@@ -42,7 +42,7 @@ export class Database {
 	async addBooking(userId, startTime, endTime) {
 		if (endTime == null) {
 			return this.db`
-			    INSERT INTO booking (userId, startTime) 
+				INSERT INTO booking (userId, startTime) 
                 VALUES (${userId}, ${startTime});
 		        RETURNING *`;
 		}
@@ -58,9 +58,10 @@ export class Database {
 	 * @param {number} startWeek
 	 * @param {number} endWeek
 	 * @param {string[]=} users
+	 * @param {string=} location
 	 * @returns
 	 */
-	async getBookings(startWeek, endWeek, users) {
+	async getBookings(startWeek, endWeek, users, location) {
 		if (users == null || users.length == 0) {
 			return this.db`
                 SELECT userid, starttime, endtime
@@ -71,8 +72,9 @@ export class Database {
                 SELECT userid, starttime, endtime
                 FROM booking
                 WHERE starttime >= ${startWeek} 
-                        AND endtime <= ${endWeek}
-                        AND userid IN (${sql(users)});`;
+                AND endtime <= ${endWeek}
+                ${users == null || users.length == 0 ? this.db`` : this.db`AND userid IN (${this.db(users)})`}
+				${!location ? this.db`` : this.db`AND location = ${location}`};`;
 	}
 
 	async getBooking(id) {
@@ -121,6 +123,21 @@ export class Database {
 	async getUsers() {
 		let dbData = await this.db`
             SELECT * FROM "user";
+        `;
+		let ldapData = await this.ldap.getUsers();
+		return dbData.map(dbUser => {
+			let ldapUser = ldapData.find(ldapUser => ldapUser.id == dbUser.id);
+			return new User({
+				...ldapUser,
+				...dbUser,
+			});
+		});
+	}
+
+	async getUsersInLocation(locationId) {
+		let dbData = await this.db`
+            SELECT * FROM "user"
+			WHERE activeLocation = ${locationId};
         `;
 		let ldapData = await this.ldap.getUsers();
 		return dbData.map(dbUser => {
@@ -260,16 +277,24 @@ export class Database {
             SELECT * 
             FROM "location"
         `;
-		return location;
+		let defaultLocation = await this.getConfig("defaultLocation");
+		return location.map(l => {
+			if (l.id == defaultLocation) l.default = true;
+			return r;
+		});
 	}
 
 	async getLocation(id) {
-		const location = await this.db`
+		let location = await this.db`
             SELECT * 
             FROM "location"
             WHERE id = ${id}
         `;
-		return location[0] ?? null;
+		if (location.length == 0) return null;
+		location = location[0];
+		let defaultLocation = await this.getConfig("defaultLocation");
+		if (defaultLocation == location.id) location.default = true;
+		return location;
 	}
 
 	async addLocation(id, name) {
@@ -301,70 +326,6 @@ export class Database {
 
 	// #endregion
 
-	// #lab status
-	async userInLab() {
-		let dbData = await this.db`
-            SELECT * FROM "user" WHERE inLab = TRUE;
-        `;
-		let ldapData = await this.ldap.getUsers();
-		return dbData.map(dbUser => {
-			let ldapUser = ldapData.find(ldapUser => ldapUser.id == dbUser.id);
-			return {
-				...ldapUser,
-				id: dbUser.id,
-				seconds: dbUser.seconds,
-				inlab: dbUser.inlab,
-			};
-		});
-	}
-
-	labOpen() {
-		let openLab = this.userInLab()
-			.filter(user => user !== null)
-			.filter(user => user.isAdmin === true);
-		return (isOpen = openLab.rows && openLab.rows.length > 0);
-	}
-
-	async nextOpening() {
-		let dbData = await this.db`
-        SELECT * FROM "user" WHERE inLab = TRUE;
-        `;
-		let ldapData = await this.ldap.getUsers();
-		let adminIds = dbData
-			.map(dbUser => {
-				let ldapUser = ldapData.find(ldapUser => ldapUser.id == dbUser.id);
-				if (!ldapUser) return null;
-				return {
-					...ldapUser,
-					id: dbUser.id,
-				};
-			})
-			.filter(user => user !== null)
-			.filter(user => user.isAdmin === true)
-			.map(user => user.id);
-		return this.db.run`
-            SELECT DISTINCT startTime, endTime FROM "booking" 
-            WHERE startTime = (
-                SELECT MIN(startTime)
-                FROM "booking"
-                WHERE userId = ANY(${this.db.sql(adminIds)})
-            )
-            AND userId = ANY(${this.db.sql(adminIds)})
-            AND endTime = (
-                SELECT MAX(endTime)
-                FROM "booking"
-                WHERE startTime = (
-                    SELECT MIN(startTime)
-                    FROM "booking"
-                    WHERE userId = ANY(${this.db.sql(adminIds)})
-                )
-                AND userId = ANY(${this.db.sql(adminIds)})
-            )
-        `;
-	}
-
-	// #endregion
-
 	// #region audit
 	/**
 	 *
@@ -373,21 +334,19 @@ export class Database {
 	 * @param {string} locationId
 	 * @param {boolean} approved
 	 */
-	async addAudit(userId, timeIn, timeOut, locationId, motivation, approved) {
+	async addAudit(userId, timeIn, timeOut, locationId, summary, approved) {
 		if (timeOut == null) {
 			return (
-				(
-					await this.db`
+				await this.db`
 				INSERT INTO audit (userId, startTime, location, approved)  
                 VALUES (${userId}, ${timeIn},${locationId},${approved})
 		        RETURNING *;`
-				)[0]
-			);
+			)[0];
 		}
 
 		return this.db`
-			INSERT INTO "audit" (userId, startTime, endTime, location, motivation,approved) 
-			VALUES (${userId}, ${timeIn}, ${timeOut}, ${locationId}, ${motivation},${approved})
+			INSERT INTO "audit" (userId, startTime, endTime, location, summary,approved) 
+			VALUES (${userId}, ${timeIn}, ${timeOut}, ${locationId}, ${summary},${approved})
 			RETURNING *;`[0];
 	}
 
@@ -441,9 +400,9 @@ export class Database {
 		);
 	}
 
-	async editAudit(id, startTime, endTime, motivation, approved, location) {
+	async editAudit(id, startTime, endTime, summary, approved, location) {
 		return this.db`
-		UPDATE audit SET startTime = ${startTime}, endTime = ${endTime}, motivation = ${motivation}, approved = ${approved}, location =${location} WHERE id = ${id} RETURNING *;`;
+		UPDATE audit SET startTime = ${startTime}, endTime = ${endTime}, summary = ${summary}, approved = ${approved}, location =${location} WHERE id = ${id} RETURNING *;`;
 	}
 
 	/**
@@ -464,7 +423,7 @@ export class Database {
                 FROM audit
                 WHERE starttime >= ${startWeek} 
                         AND endtime <= ${endWeek}
-                        AND userid IN (${sql(users)});`;
+                        AND userid IN (${this.db(users)});`;
 	}
 
 	deleteAudit(auditId) {
@@ -568,19 +527,7 @@ export class Database {
 
 	// #endregion
 
-	// #region db-management
-
-	close() {
-		this.db.close(err => {
-			if (err) {
-				console.error(err.message);
-			}
-		});
-	}
-
-	// #endregion
-
-	//#region codes
+	// #region codes
 
 	/**
 	 *
@@ -644,4 +591,18 @@ export class Database {
 			VALUES (${id}, ${value})
 			ON CONFLICT (id) DO UPDATE SET value = ${value}`;
 	}
+
+	// #endregion
+
+	// #region db-management
+
+	close() {
+		this.db.close(err => {
+			if (err) {
+				console.error(err.message);
+			}
+		});
+	}
+
+	// #endregion
 }
