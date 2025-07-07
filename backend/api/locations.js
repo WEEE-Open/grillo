@@ -1,7 +1,7 @@
 import * as v from "valibot";
 import dayjs from "../day.js";
 
-import { db } from "../index.js";
+import { db, io } from "../index.js";
 
 export const locations = {
 	auth: "RO",

@@ -10,6 +10,7 @@ import * as bookings from "./bookings.js";
 import * as codes from "./codes.js";
 import * as events from "./events.js";
 import * as locations from "./locations.js";
+import * as server from "./server.js";
 import * as tokens from "./tokens.js";
 import * as user from "./user.js";
 
@@ -19,6 +20,7 @@ const routes = {
 	...codes,
 	...events,
 	...locations,
+	...server,
 	...tokens,
 	...user,
 };

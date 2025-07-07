@@ -16,7 +16,7 @@ export default {
 			copied: false, // make sure is copied at least once
 			itemToDelete: null, // for confirmation dialog
 			record: {
-				readonly: false,
+				readOnly: false,
 				admin: false,
 				description: "",
 			},
@@ -32,8 +32,8 @@ export default {
 		computedTokens() {
 			return this.tokens.map(t => {
 				let permission = "default";
-				if (t.readonly) {
-					permission = "readonly";
+				if (t.readOnly) {
+					permission = "readOnly";
 				} else if (t.admin) {
 					permission = "admin";
 				}
@@ -84,7 +84,7 @@ export default {
 		add() {
 			this.isEditing = false;
 			this.record = {
-				readonly: false,
+				readOnly: false,
 				admin: false,
 				description: "",
 			};
@@ -135,15 +135,15 @@ export default {
 			this.copied = false; // reset copied state for new token
 		},
 
-		//cannot be both readonly and admin
+		//cannot be both readOnly and admin
 		onAdminChange() {
 			if (this.record.admin) {
-				this.record.readonly = false;
+				this.record.readOnly = false;
 			}
 		},
 
 		onReadonlyChange() {
-			if (this.record.readonly) {
+			if (this.record.readOnly) {
 				this.record.admin = false;
 			}
 		},
@@ -175,7 +175,7 @@ export default {
 			</template>
 
 			<template v-slot:item.permission="{ item }">
-				<v-chip v-if="item.readonly" color="yellow">Read-only</v-chip>
+				<v-chip v-if="item.readOnly" color="yellow">Read-only</v-chip>
 				<v-chip v-else-if="item.admin" color="blue">Admin</v-chip>
 				<v-chip v-else color="grey">Default</v-chip>
 			</template>
@@ -197,7 +197,7 @@ export default {
 				<v-sheet class="d-flex justify-space-evenly">
 					<v-checkbox
 						label="Read-only"
-						v-model="record.readonly"
+						v-model="record.readOnly"
 						@update:modelValue="onReadonlyChange"
 						:disabled="record.admin"
 					/>
@@ -205,7 +205,7 @@ export default {
 						label="Admin"
 						v-model="record.admin"
 						@update:modelValue="onAdminChange"
-						:disabled="record.readonly"
+						:disabled="record.readOnly"
 					/>
 				</v-sheet>
 				<v-textarea label="Description" v-model="record.description" :rules="inputRules" />

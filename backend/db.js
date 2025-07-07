@@ -42,12 +42,12 @@ export class Database {
 	async addBooking(userId, startTime, endTime) {
 		if (endTime == null) {
 			return this.db`
-				INSERT INTO booking (userId, startTime) 
+				INSERT INTO booking ("userId", "startTime") 
                 VALUES (${userId}, ${startTime});
 		        RETURNING *`;
 		}
 		return this.db`
-			INSERT INTO booking (userId, startTime, endTime) 
+			INSERT INTO booking ("userId", "startTime", "endTime") 
             VALUES (${userId}, ${startTime}, ${endTime}) 
             RETURNING *;
 		`;
@@ -64,16 +64,16 @@ export class Database {
 	async getBookings(startWeek, endWeek, users, location) {
 		if (users == null || users.length == 0) {
 			return this.db`
-                SELECT userid, starttime, endtime
+                SELECT "userId", "startTime", "endTime"
                 FROM booking
-                WHERE starttime>=${startWeek} AND endtime<=${endWeek};`;
+                WHERE "startTime">=${startWeek} AND "endTime"<=${endWeek};`;
 		}
 		return this.db`
-                SELECT userid, starttime, endtime
+                SELECT "userId", "starTime", "endTime"
                 FROM booking
-                WHERE starttime >= ${startWeek} 
-                AND endtime <= ${endWeek}
-                ${users == null || users.length == 0 ? this.db`` : this.db`AND userid IN (${this.db(users)})`}
+                WHERE "startTime" >= ${startWeek} 
+                AND "endTime" <= ${endWeek}
+                ${users == null || users.length == 0 ? this.db`` : this.db`AND "userId" IN (${this.db(users)})`}
 				${!location ? this.db`` : this.db`AND location = ${location}`};`;
 	}
 
@@ -106,7 +106,7 @@ export class Database {
 	 */
 	async editBooking(id, startTime, endTime) {
 		return this.db`
-                UPDATE booking SET startTime = ${startTime}, endTime = ${endTime} WHERE id = ${id} RETURNING *;`;
+                UPDATE booking SET "startTime" = ${startTime}, "endTime" = ${endTime} WHERE id = ${id} RETURNING *;`;
 	}
 
 	// #endregion
@@ -115,7 +115,7 @@ export class Database {
 
 	addUserIfNotExists(userId) {
 		return this.db`
-			INSERT INTO "user" (id, seconds, inlab) VALUES (${userId}, 0, FALSE)
+			INSERT INTO "user" (id, seconds) VALUES (${userId}, 0)
 			ON CONFLICT(id) DO NOTHING;
 		`;
 	}
@@ -179,7 +179,7 @@ export class Database {
 				Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 			try {
 				await this.db`
-					INSERT INTO cookie (cookie, userId, description) VALUES (${cookie}, ${userId}, ${description});
+					INSERT INTO cookie ("cookie", "userId", "description") VALUES (${cookie}, ${userId}, ${description});
 				`;
 				return cookie;
 			} catch (e) {
@@ -192,12 +192,12 @@ export class Database {
 
 	async getSessionByCookie(cookie) {
 		let user = await this.db`
-			SELECT userId FROM cookie WHERE cookie = ${cookie};
+			SELECT "userId" FROM cookie WHERE cookie = ${cookie};
 		`;
 		if (user.length == 0) {
 			return null;
 		}
-		let userData = await this.getUser(user[0].userid);
+		let userData = await this.getUser(user[0].userId);
 		return new Session("user", userData);
 	}
 
@@ -252,7 +252,7 @@ export class Database {
 			let hash = await bcrypt.hash(password, this.apiKeySaltRounds);
 			try {
 				await this.db`
-					INSERT INTO "token" (id, hash, readonly, admin, description) VALUES (${token}, ${hash}, ${readOnly}, ${isAdmin}, ${description});
+					INSERT INTO "token" ("id", "hash", "readOnly", "admin", "description") VALUES (${token}, ${hash}, ${readOnly}, ${isAdmin}, ${description});
 				`;
 				return { token, password, fullString: `${token}:${password}` };
 			} catch (e) {
@@ -280,7 +280,7 @@ export class Database {
 		let defaultLocation = await this.getConfig("defaultLocation");
 		return location.map(l => {
 			if (l.id == defaultLocation) l.default = true;
-			return r;
+			return l;
 		});
 	}
 
@@ -338,14 +338,14 @@ export class Database {
 		if (timeOut == null) {
 			return (
 				await this.db`
-				INSERT INTO audit (userId, startTime, location, approved)  
+				INSERT INTO audit ("userId", "startTime", "location", "approved")  
                 VALUES (${userId}, ${timeIn},${locationId},${approved})
 		        RETURNING *;`
 			)[0];
 		}
 
 		return this.db`
-			INSERT INTO "audit" (userId, startTime, endTime, location, summary,approved) 
+			INSERT INTO "audit" ("userId", "startTime", "endTime", "location", "summary", "approved") 
 			VALUES (${userId}, ${timeIn}, ${timeOut}, ${locationId}, ${summary},${approved})
 			RETURNING *;`[0];
 	}
@@ -355,12 +355,12 @@ export class Database {
 			(
 				await this.db`
 		SELECT id FROM audit 
-		WHERE userId = ${userId} AND endTime IS NULL 
-		ORDER BY startTime DESC
+		WHERE "userId" = ${userId} AND "endTime" IS NULL 
+		ORDER BY "startTime" DESC
 		LIMIT 1
 	`
 			)[0] ?? null
-		); // <-- restituisce l'oggetto o null
+		);
 	}
 
 	/**
@@ -402,7 +402,7 @@ export class Database {
 
 	async editAudit(id, startTime, endTime, summary, approved, location) {
 		return this.db`
-		UPDATE audit SET startTime = ${startTime}, endTime = ${endTime}, summary = ${summary}, approved = ${approved}, location =${location} WHERE id = ${id} RETURNING *;`;
+		UPDATE audit SET "startTime" = ${startTime}, "endTime" = ${endTime}, "summary" = ${summary}, "approved" = ${approved}, "location" =${location} WHERE id = ${id} RETURNING *;`;
 	}
 
 	/**
@@ -416,14 +416,14 @@ export class Database {
 			return this.db`
                 SELECT *
                 FROM audit
-                WHERE starttime>=${startWeek} AND endtime<=${endWeek};`;
+                WHERE "startTime">=${startWeek} AND "endTime"<=${endWeek};`;
 		}
 		return this.db`
                 SELECT *
                 FROM audit
-                WHERE starttime >= ${startWeek} 
-                        AND endtime <= ${endWeek}
-                        AND userid IN (${this.db(users)});`;
+                WHERE "startTime" >= ${startWeek} 
+                        AND "endTime" <= ${endWeek}
+                        AND "userId" IN (${this.db(users)});`;
 	}
 
 	deleteAudit(auditId) {
@@ -452,9 +452,9 @@ export class Database {
 				sql += " AND date(A2.time) <= ?";
 				param.push(endTime);
 			}
-			sql += " GROUP BY A1.userId";
+			sql += " GROUP BY A1.\"userId\"";
 			if (user != null) {
-				sql += " HAVING A1.userId = ?";
+				sql += " HAVING A1.\"userId\" = ?";
 				param.push(user);
 			}
 			this.db.all(sql, param, (err, rows) => {
@@ -508,7 +508,7 @@ export class Database {
 	async editEvent(id, startTime, endTime, title, description) {
 		const event = await this.db`
         UPDATE event
-        SET  starttime=${startTime},endtime=${endTime},title=${title},description=${description}
+        SET "startTime"=${startTime}, "endTime"=${endTime}, "title"=${title}, "description"=${description}
         WHERE id = ${id}
         RETURNING *;
     `;
@@ -541,12 +541,12 @@ export class Database {
 		const expirationTime = parseInt(Date.now() / 1000 + 60); //one minute expiration time
 		if (userId === undefined) {
 			return await this.db`
-				INSERT INTO codes (code, expirationTime) 
+				INSERT INTO codes ("code", "expirationTime") 
 				VALUES (${code}, ${expirationTime}) 
 				RETURNING *;`;
 		} else {
 			return await this.db`
-				INSERT INTO codes (code, userId, expirationTime) 
+				INSERT INTO codes ("code", "userId", "expirationTime") 
 				VALUES (${code}, ${userId}, ${expirationTime}) 
 				RETURNING *;`;
 		}
@@ -564,7 +564,7 @@ export class Database {
 	async assignCode(code, userId) {
 		return await this.db`
 			UPDATE codes
-			SET userId = ${userId}
+			SET "userId" = ${userId}
 			WHERE code = ${code}
 		`;
 	}
@@ -582,7 +582,7 @@ export class Database {
 			WHERE id = ${id}
 			LIMIT 1`;
 		if (values.length == 0) return null;
-		return values[0];
+		return values[0].value;
 	}
 
 	async setConfig(id, value) {

@@ -78,7 +78,7 @@ export default {
 		} else if (this.blocked) {
 			// lmao rip
 		} else {
-			window.location.href = "/api/v1/login?return=%2F"; // this endpoint will take care of redirecting us
+			window.location.href = "/api/v1/user/session?return=%2F"; // this endpoint will take care of redirecting us
 		}
 	},
 	beforeUnmound() {

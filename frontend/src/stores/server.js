@@ -53,7 +53,7 @@ export const useServer = defineStore("server", {
 			}
 		},
 		async logout() {
-			let [request, abort] = this.makeRequest("GET", "/logout");
+			let [request, abort] = this.makeRequest("DELETE", "/user/session");
 			let response = await request;
 			if (response.ok) {
 				return;
@@ -68,12 +68,26 @@ export const useServer = defineStore("server", {
 			if (response.ok) {
 				let body = await response.json();
 				this.servicesLinks = body.servicesLinks;
+				this.defaultLocation = body.defaultLocation;
+			} else {
+				// TODO: display some kind of error
+			}
+		},
+		async setConfig(key, value) {
+			let [request, abort] = this.makeRequest("PATCH", "/config", { [key]: value });
+			let response = await request;
+			console.log(response);
+			if (response.ok) {
+				let body = await response.json();
+				this.servicesLinks = body.servicesLinks;
+				this.defaultLocation = body.defaultLocation;
+				return true;
 			} else {
 				// TODO: display some kind of error
 			}
 		},
 		async ring() {
-			let [request, abort] = this.makeRequest("POST", "/lab/ring");
+			let [request, abort] = this.makeRequest("POST", "/locations/default/ring");
 			let response = await request;
 			if (response.ok) {
 				return true;
@@ -132,7 +146,7 @@ export const useServer = defineStore("server", {
 		async createToken(token) {
 			let [request, abort] = this.makeRequest("POST", "/tokens", {
 				description: token.description,
-				readonly: token.readonly,
+				readOnly: token.readOnly,
 				admin: token.admin,
 			});
 

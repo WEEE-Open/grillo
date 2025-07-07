@@ -17,14 +17,14 @@ export const tokensNew = {
 	route: "/tokens",
 	body: () => v.pipe(
 		v.object({
-			readonly: v.boolean(),
-			admin: v.boolean(),
+			readOnly: v.fallback(v.boolean(), false),
+			admin: v.fallback(v.boolean(), false),
 			description: v.pipe(v.string(), v.trim(), v.nonEmpty()),
 		}),
-		v.check(input => !(input.readonly && input.admin)),
+		v.check(input => !(input.readOnly && input.admin)),
 	),
 	async handler(req, res) {
-		let result = await db.generateApiToken(req.body.readonly, req.body.admin, req.body.description);
+		let result = await db.generateApiToken(req.body.readOnly, req.body.admin, req.body.description);
 		res.json(result);
 	},
 };

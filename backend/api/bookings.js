@@ -146,7 +146,7 @@ export const bookingsIdEdit = {
 			return;
 		}
 
-		if (booking.userid != req.session.user.id) {
+		if (booking.userId != req.session.user.id) {
 			res.status(403).send({ error: "Not authorized" });
 			return;
 		}

@@ -7,7 +7,7 @@ export class User {
 		this.surname = opt.surname;
 		this.printableName = opt.printableName;
 		this.seconds = opt.seconds;
-		this.inlab = opt.inlab;
+		this.activeLocation = opt.activeLocation;
 		this.hasKey = opt.hasKey;
 		this.groups = opt.groups;
 	}
@@ -24,7 +24,7 @@ export class ApiToken {
 	constructor(opt) {
 		this.id = opt.id;
 		this.hash = opt.hash;
-		this.readonly = opt.readonly;
+		this.readOnly = opt.readOnly;
 		this.admin = opt.admin;
 		this.description = opt.description;
 	}
@@ -32,7 +32,7 @@ export class ApiToken {
 	toJSON() {
 		return {
 			id: this.id,
-			readonly: this.readonly,
+			readOnly: this.readOnly,
 			admin: this.admin,
 			description: this.description,
 		};

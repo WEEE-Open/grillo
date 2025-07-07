@@ -13,8 +13,10 @@ export default {
 			dialog: false,
 			isEditing: false,
 			idModified: false, //stop id prediction
-			confirmDialog: false,
+			confirmDialogDelete: false,
+			confirmDialogDefault: false,
 			itemToDelete: null, // for confirmation dialog
+			itemToChange: null,
 			record: {
 				id: "",
 				name: "",
@@ -72,6 +74,7 @@ export default {
 			"createLocation",
 			"updateLocation",
 			"deleteLocation",
+			"setConfig",
 		]),
 		async fetchLocations() {
 			try {
@@ -114,10 +117,23 @@ export default {
 				let result = await this.deleteLocation(item);
 				if (result) {
 					this.fetchLocations(); //check if there is a better method lolz
-					this.confirmDialog = false;
+					this.confirmDialogDelete = false;
 				}
 			} catch (error) {
 				console.error("Location deletion failed:", error);
+			}
+		},
+
+		async setDefaultLocation(item) {
+			try {
+				let result = await this.setConfig('defaultLocation', item.id);
+				console.log(result);
+				if (result) {
+					this.fetchLocations(); //check if there is a better method lolz
+					this.confirmDialogDefault = false;
+				}
+			} catch (error) {
+				console.error("Setting default location failed:", error);
 			}
 		},
 
@@ -138,9 +154,12 @@ export default {
 		},
 		confirmDelete(item) {
 			this.itemToDelete = item;
-			this.confirmDialog = true;
+			this.confirmDialogDelete = true;
 		},
-
+		confirmDefault(item) {
+			this.itemToChange = item;
+			this.confirmDialogDefault = true;
+		},
 		isExistingId(id) {
 			return this.locations.some(location => location.id === id);
 		},
@@ -174,9 +193,14 @@ export default {
 					<v-btn class="ml-2" @click="fetchLocations">Refresh</v-btn>
 				</v-toolbar>
 			</template>
+			<template v-slot:item.id="{ item }">
+				{{ item.id }}
+				<v-chip v-if="item.default">Default</v-chip>
+			</template>
 			<template v-slot:item.actions="{ item }">
 				<div class="d-flex justify-end">
-					<v-btn variant="text" icon="mdi-pencil" class="mr-2" @click="edit(item)" />
+					<v-btn variant="text" icon="mdi-map-marker-star-outline" class="mr-2" :disabled="item.default" @click="confirmDefault(item)" />
+					<v-btn variant="text" icon="mdi-pencil" @click="edit(item)" />
 					<v-btn variant="text" icon="mdi-delete" @click="confirmDelete(item)" />
 				</div>
 			</template>
@@ -217,8 +241,7 @@ export default {
 		</v-card>
 	</v-dialog>
 
-	<!-- Confimation dialog-->
-	<v-dialog v-model="confirmDialog" max-width="400">
+	<v-dialog v-model="confirmDialogDelete" max-width="400">
 		<v-card>
 			<v-card-title class="text-h5">Confirm Deletion</v-card-title>
 			<v-card-text>
@@ -228,8 +251,22 @@ export default {
 			</v-card-text>
 			<v-card-actions>
 				<v-spacer></v-spacer>
-				<v-btn color="grey" text @click="confirmDialog = false">Cancel</v-btn>
+				<v-btn color="grey" text @click="confirmDialogDelete = false">Cancel</v-btn>
 				<v-btn color="error" @click="removeLocation(itemToDelete)">Delete</v-btn>
+			</v-card-actions>
+		</v-card>
+	</v-dialog>
+
+	<v-dialog v-model="confirmDialogDefault" max-width="400">
+		<v-card>
+			<v-card-title class="text-h5">Confirm Changing Default Location</v-card-title>
+			<v-card-text>
+				Are you sure you want to chage the default location to "{{ itemToChange?.name }}"?
+			</v-card-text>
+			<v-card-actions>
+				<v-spacer></v-spacer>
+				<v-btn color="grey" text @click="confirmDialogDefault = false">Cancel</v-btn>
+				<v-btn color="primary" @click="setDefaultLocation(itemToChange)">Change</v-btn>
 			</v-card-actions>
 		</v-card>
 	</v-dialog>

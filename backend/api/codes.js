@@ -45,7 +45,7 @@ export const codesUserSet = {
 		if (!code) {
 			return req.status(404).json({ error: "Code not found" });
 		}
-		if (code.userid) {
+		if (code.userId) {
 			return res.status(403).send({ error: "Forbidden" });
 		}
 		await db.assignCode(req.params.code, req.session.user.id);
@@ -62,7 +62,7 @@ export const codesDelete = {
 		if (!code) {
 			return req.status(404).json({ error: "Code not found" });
 		}
-		if (req.session.isUser && req.session.user.id != code.userid) {
+		if (req.session.isUser && req.session.user.id != code.userId) {
 			// TODO: probably in the future we should link the code to whoever generated and limit deletion to them, currently allowin only APIs and the user who is assigned to the code is just fine, codes last only a minute and once assigned can't be changed
 			return res.status(403).send({ error: "Forbidden" });
 		}

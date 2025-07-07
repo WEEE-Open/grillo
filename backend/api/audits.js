@@ -128,7 +128,7 @@ export const auditsNew = {
 				}
 				oldAudit = db.editAudit(
 					activeAudit.id,
-					activeAudit.starttime,
+					activeAudit.startTime,
 					req.body.endTime,
 					req.body.previousSummary,
 					req.body.approved,
@@ -306,7 +306,7 @@ export const auditsIdDelete = {
 			return;
 		}
 
-		if ((audit.userid != req.session.user.id || audit.approved) && !req.session.isAdmin) {
+		if ((audit.userId != req.session.user.id || audit.approved) && !req.session.isAdmin) {
 			res.status(403).send("Not authorized");
 			return;
 		}

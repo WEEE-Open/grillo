@@ -1,13 +1,13 @@
+CREATE TABLE IF NOT EXISTS "location" (
+    "id" VARCHAR(255) PRIMARY KEY NOT NULL,
+    "name" TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS "user" (
     "id" VARCHAR(255) PRIMARY KEY NOT NULL,    
     "seconds" INTEGER NOT NULL DEFAULT 0, 
     "activeLocation" VARCHAR(255),
     FOREIGN KEY("activeLocation") REFERENCES "location"("id")
-);
-
-CREATE TABLE IF NOT EXISTS "location" (
-    "id" VARCHAR(255) PRIMARY KEY NOT NULL,
-    "name" TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS "audit" (
