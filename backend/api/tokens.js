@@ -40,6 +40,7 @@ export const tokensId = {
 
 export const tokensIdDelete = {
 	auth: "admin",
+	mathod: "DELETE",
 	route: "/tokens/:id",
 	async handler(req, res) {
 		await db.deleteApiToken(req.params.id);
