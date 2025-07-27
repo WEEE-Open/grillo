@@ -218,12 +218,116 @@ export const useServer = defineStore("server", {
 			} else {
 				if (response.status === 401) {
 					throw new Error("Not authenticated");
-				} else if (response.status === 403) {
+				} 
+				else if (response.status === 403) {
 					throw new Error("No permission");
-				} else {
+				} 
+				else {
 					throw new Error("Error occurred during location deletion");
 				}
 			} //Da controllare tutti gli errori
 		},
+
+		/* BOOKINGS */
+		async getBookings(){
+			let [request, abort] = this.makeRequest("GET", `/bookings`);
+
+			let response = await request;
+			if(response.ok){
+				return response.json();
+			}
+			else{
+				throw new Error("Some error occured");
+			}
+		},
+
+		async createBooking(data){
+			let [request, abort] = this.makeRequest("POST", "/bookings", {
+				startTime: new Date(data.startTime).getTime(),
+       			endTime: new Date(data.endTime).getTime(), 
+				userId: data.userId,    
+				
+			})
+			
+			let response = await request;
+
+			if(response.ok){
+				return true;
+			}
+			else{
+				if (response.status === 401) {
+					throw new Error("Not authenticated");
+				} 
+				else if (response.status === 403) {
+					throw new Error("No permission");
+				}
+				else if (response.status === 400) {
+					throw new Error("Already exist");
+				} 
+				else {
+					throw new Error("Error occurred during Booking creation");
+				}
+			}
+		},
+
+
+		/* EVENTS */
+
+		async getEvents(){
+			let [request, abort] = this.makeRequest("GET", `/events`);
+
+			let response = await request;
+			if(response.ok){
+				return response.json();
+			}
+			else{
+				throw new Error("Some error occured");
+			}
+		},
+
+		async createEvent(event){
+			// Debug: mostra i dati che stai inviando
+			const payload = {
+				startTime: new Date(event.startTime).getTime(),
+				endTime: new Date(event.endTime).getTime()
+				// userId verrà estratto dal backend dalla sessione
+				// Non inviamo title e description per le prenotazioni
+			};
+			
+			console.log("Input event:", event);
+			console.log("Sending payload:", payload);
+			console.log("Start Date:", new Date(event.startTime));
+			console.log("End Date:", new Date(event.endTime));
+			
+			let [request, abort] = this.makeRequest("POST", "/events", payload);
+			
+			let response = await request;
+
+			if(response.ok){
+				return true;
+			}
+			else{
+				// IMPORTANTE: Leggi il messaggio di errore dal server
+				const errorText = await response.text();
+				console.error("Server error response:", errorText);
+				console.error("Response status:", response.status);
+				
+				if (response.status === 401) {
+					throw new Error("Not authenticated");
+				} 
+				else if (response.status === 403) {
+					throw new Error("No permission");
+				}
+				else if (response.status === 400) {
+					throw new Error(`Validation failed: ${errorText}`);
+				} 
+				else if (response.status === 500) {
+					throw new Error(`Server error: ${errorText}`);
+				}
+				else {
+					throw new Error(`Error occurred during event creation: ${errorText}`);
+				}
+			}
+		}
 	},
 });
