@@ -3,9 +3,10 @@ import { VCalendar } from 'vuetify/labs/VCalendar'
 import { useServer } from "../stores/server";
 import { mapActions } from "pinia";
 
+
 export default {
 	components: {
-		VCalendar
+		VCalendar,
 	},
 	data() {
 		let now = new Date();
@@ -53,7 +54,7 @@ export default {
 
 		currentUser() {
 			const serverStore = useServer();
-			return serverStore.session;
+			return serverStore.session.user;
 		},
 
 		isUserLoggedIn() {
@@ -65,8 +66,11 @@ export default {
 
 		async fetchBookings() {
 			try {
-				this.events = []; // Reset events array
-				let dbBookings = await this.getBookings();
+				this.events = []; 
+			    let now = Math.floor(Date.now() / 1000); // UNIX timestamp in seconds
+
+				let dbBookings = await this.getBookings(now);
+				
 				//adapt dbBooking into Event for calendar
 				for (const dbBooking of dbBookings) {
 					const calendarEvent = {
@@ -88,7 +92,7 @@ export default {
 			try {
 	
 				const serverStore = useServer();
-				const userId = serverStore.session?.id;
+			 	const userId = serverStore.session.user.id;
 				
 				if (!userId) {
 					throw new Error("User not logged in - please login first");
@@ -155,7 +159,10 @@ export default {
 			<v-card>
 				<v-card-title class="text-h5">Create a Booking</v-card-title>
 				<v-card-subtitle v-if="isUserLoggedIn">
-					Creating booking for user: {{ currentUser.id }}
+					Creating booking for user: {{ currentUser.name }}
+				</v-card-subtitle>
+				<v-card-subtitle v-else>
+					User not logged in - Debug: {{ currentUser.name }}
 				</v-card-subtitle>
 
 				<v-card-text>
@@ -163,24 +170,22 @@ export default {
 						<v-row>
 							<v-col cols="12" md="6">
 								<v-text-field
-									label="Start Date and Time *"
+									label="Start Date and Time"
 									v-model="bookingForm.startTime"
 									type="datetime-local"
 									:rules="bookingDateTimeRules"
 									variant="outlined"
-									prepend-inner-icon="mdi-clock-start"
 									:disabled="!isUserLoggedIn"
 									required
 								/>
 							</v-col>
 							<v-col cols="12" md="6">
 								<v-text-field
-									label="End Date and Time *"
+									label="End Date and Time"
 									v-model="bookingForm.endTime"
 									type="datetime-local"
 									:rules="bookingDateTimeRules"
 									variant="outlined"
-									prepend-inner-icon="mdi-clock-end"
 									:disabled="!isUserLoggedIn"
 									required
 								/>

@@ -62,19 +62,14 @@ export class Database {
 	 * @returns
 	 */
 	async getBookings(startWeek, endWeek, users, location) {
-		if (users == null || users.length == 0) {
-			return this.db`
-                SELECT "userId", "startTime", "endTime"
-                FROM booking
-                WHERE "startTime">=${startWeek} AND "endTime"<=${endWeek};`;
-		}
-		return this.db`
-                SELECT "userId", "starTime", "endTime"
-                FROM booking
-                WHERE "startTime" >= ${startWeek} 
-                AND "endTime" <= ${endWeek}
-                ${users == null || users.length == 0 ? this.db`` : this.db`AND "userId" IN (${this.db(users)})`}
-				${!location ? this.db`` : this.db`AND location = ${location}`};`;
+ 		const result = await this.db`
+			SELECT "userId", "startTime", "endTime"
+			FROM booking
+			WHERE "startTime" >= ${startWeek} 
+			AND ("endTime" <= ${endWeek} OR "endTime" IS NULL)
+			${users && users.length > 0 ? this.db`AND "userId" IN ${this.db(users)}` : this.db``}
+			${location ? this.db`AND location = ${location}` : this.db``};`;
+		return result;
 	}
 
 	async getBooking(id) {

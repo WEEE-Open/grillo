@@ -5,26 +5,27 @@ import { db } from "../index.js";
 
 export const bookings = {
 	auth: "RO",
-	route: "/bookings",
+	route: "/bookings/:date",
 	async handler(req, res) {
-		let userId;
-		let unixDate = parseInt(req.params.date);
-		if (unixDate) unixDate = null;
-		else unixDate *= 1000;
+		
+		if (!req.session || !req.session.user || !req.session.user.id) {
+        return res.status(401).json({ error: "Not authenticated" });
+    }
+	    let userId = req.session.user.id;
+		
+		let unixDate = parseInt(req.params.date, 10);
+		if (String(unixDate).length === 10) unixDate *= 1000;
 		let date = dayjs(unixDate);
-		startWeek = date.startOf("isoWeek").unix();
-		endWeek = date.endOf("isoWeek").unix();
+		const startWeek = date.startOf("isoWeek").unix();
+		const endWeek = date.endOf("isoWeek").unix();
 
-		if (req.params.user == null) {
-			userId = null;
-		} else {
-			userId = req.body.user;
-		}
-
-		let user = db.getUser(userId);
+		/*
+		let user = await db.getUser(userId);
 		if (!user) {
-			return req.status(404).json({ error: "User not found" });
+			return res.status(404).json({ error: "User not found" });
 		}
+		*/
+		
 
 		const bookings = await db.getBookings(startWeek, endWeek, [userId]);
 		res.json(bookings);
@@ -84,7 +85,7 @@ export const bookingsNew = {
 
 		if (!req.body.endTime) endTime = null;
 
-		let booking = await db.addBooking(req.session.user.id, inTime, endTime);
+		let booking = await db.addBooking(req.session.user.id, startTime, endTime);
 		res.status(200).json(booking);
 	},
 };
@@ -164,7 +165,7 @@ export const bookingsIdEdit = {
 
 		if (!req.body.endTime) endTime = null;
 
-		let newBooking = await db.editBooking(booking.id, inTime, endTime);
+		let newBooking = await db.editBooking(booking.id, startTime, endTime);
 		res.status(200).json(newBooking);
 	},
 };

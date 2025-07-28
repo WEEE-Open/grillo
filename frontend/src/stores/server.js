@@ -229,8 +229,9 @@ export const useServer = defineStore("server", {
 		},
 
 		/* BOOKINGS */
-		async getBookings(){
-			let [request, abort] = this.makeRequest("GET", `/bookings`);
+		async getBookings(date){
+
+			let [request, abort] = this.makeRequest("GET", `/bookings/${date}`);
 
 			let response = await request;
 			if(response.ok){
@@ -286,20 +287,12 @@ export const useServer = defineStore("server", {
 		},
 
 		async createEvent(event){
-			// Debug: mostra i dati che stai inviando
-			const payload = {
+			let [request, abort] = this.makeRequest("POST", "/events", {
 				startTime: new Date(event.startTime).getTime(),
-				endTime: new Date(event.endTime).getTime()
-				// userId verrà estratto dal backend dalla sessione
-				// Non inviamo title e description per le prenotazioni
-			};
-			
-			console.log("Input event:", event);
-			console.log("Sending payload:", payload);
-			console.log("Start Date:", new Date(event.startTime));
-			console.log("End Date:", new Date(event.endTime));
-			
-			let [request, abort] = this.makeRequest("POST", "/events", payload);
+       			endTime: new Date(event.endTime).getTime(),     
+				title: event.title,
+				description: event.description,
+			})
 			
 			let response = await request;
 
@@ -307,11 +300,6 @@ export const useServer = defineStore("server", {
 				return true;
 			}
 			else{
-				// IMPORTANTE: Leggi il messaggio di errore dal server
-				const errorText = await response.text();
-				console.error("Server error response:", errorText);
-				console.error("Response status:", response.status);
-				
 				if (response.status === 401) {
 					throw new Error("Not authenticated");
 				} 
@@ -319,13 +307,10 @@ export const useServer = defineStore("server", {
 					throw new Error("No permission");
 				}
 				else if (response.status === 400) {
-					throw new Error(`Validation failed: ${errorText}`);
+					throw new Error("Already exist");
 				} 
-				else if (response.status === 500) {
-					throw new Error(`Server error: ${errorText}`);
-				}
 				else {
-					throw new Error(`Error occurred during event creation: ${errorText}`);
+					throw new Error("Error occurred during event creation");
 				}
 			}
 		}
