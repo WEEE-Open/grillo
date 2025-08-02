@@ -243,32 +243,26 @@ export const useServer = defineStore("server", {
 		},
 
 		async createBooking(data){
-			let [request, abort] = this.makeRequest("POST", "/bookings", {
-				startTime: new Date(data.startTime).getTime(),
-       			endTime: new Date(data.endTime).getTime(), 
-				userId: data.userId,    
-				
-			})
+			console.log('Sending booking data:', data);
+			
+			const payload = {
+				startTime: new Date(data.startTime).getTime(), // milliseconds
+				endTime: new Date(data.endTime).getTime(),
+				location: data.location 
+			};
+			
+			let [request, abort] = this.makeRequest("POST", "/bookings", payload);
 			
 			let response = await request;
-
-			if(response.ok){
-				return true;
+			
+			console.log('Response status:', response.status);
+			
+			if (!response.ok) {
+				const errorText = await response.text();
+				console.log('Error response:', errorText);
 			}
-			else{
-				if (response.status === 401) {
-					throw new Error("Not authenticated");
-				} 
-				else if (response.status === 403) {
-					throw new Error("No permission");
-				}
-				else if (response.status === 400) {
-					throw new Error("Already exist");
-				} 
-				else {
-					throw new Error("Error occurred during Booking creation");
-				}
-			}
+			
+			return response;
 		},
 
 

@@ -29,19 +29,24 @@ export default {
 			events: [],
 			dialog: false,
 			loading: false,
+			locations: [],
 			bookingForm: {
 				startTime: "",
-				endTime: ""
+				endTime: "",
+				location: "" 
 			}
 		}
 	},
 	mounted (){
 		this.fetchBookings();
+		this.fetchLocations(); 
 	},
 	computed: {
 		bookingDateTimeRules() {
+		
 			if (!this.bookingForm.startTime) return ["Start time is required"];
 			if (!this.bookingForm.endTime) return ["End time is required"];
+			if (!this.bookingForm.location) return ["Location is required"]; 
 			if (new Date(this.bookingForm.startTime) >= new Date(this.bookingForm.endTime)) {
 				return ["End time must be after start time"];
 			}
@@ -62,7 +67,20 @@ export default {
 		}
 	},
 	methods: {
-		...mapActions(useServer, ["getBookings", "createBooking"]),
+		...mapActions(useServer, ["getBookings", "createBooking", "getLocations"]), 
+
+	
+		async fetchLocations() {
+			try {
+				this.locations = await this.getLocations();
+				
+				if (this.locations.length > 0) {
+					this.bookingForm.location = this.locations[0].id;
+				}
+			} catch(error) {
+				console.log("Locations fetch failed: ", error);
+			}
+		},
 
 		async fetchBookings() {
 			try {
@@ -71,15 +89,20 @@ export default {
 
 				let dbBookings = await this.getBookings(now);
 				
-				//adapt dbBooking into Event for calendar
 				for (const dbBooking of dbBookings) {
+					const startDate = new Date(dbBooking.startTime * 1000);
+					const endDate = dbBooking.endTime ? new Date(dbBooking.endTime * 1000) : null;
+					
+					
 					const calendarEvent = {
-						title: dbBooking.userId,
-						start: dbBooking.startTime,
-						end: dbBooking.endTime,
+						title: `User ${dbBooking.userId}`,
+						start: startDate,
+						end: endDate,
 						color: "green",
 						allDay: false,
 					};
+					console.log(calendarEvent)
+					
 					this.events.push(calendarEvent);
 				}
 			}
@@ -90,9 +113,8 @@ export default {
 
 		async addBooking(){
 			try {
-	
 				const serverStore = useServer();
-			 	const userId = serverStore.session.user.id;
+				const userId = serverStore.session.user.id;
 				
 				if (!userId) {
 					throw new Error("User not logged in - please login first");
@@ -100,7 +122,8 @@ export default {
 
 				const bData = {
 					startTime: this.bookingForm.startTime,  
-					endTime: this.bookingForm.endTime,     
+					endTime: this.bookingForm.endTime,
+					location: this.bookingForm.location, 
 					userId: userId                         
 				};
 
@@ -126,7 +149,8 @@ export default {
 		resetForm() {
 			this.bookingForm = {
 				startTime: "",
-				endTime: ""
+				endTime: "",
+				location: this.locations.length > 0 ? this.locations[0].id : "" 
 			};
 		}
 	}
@@ -149,12 +173,7 @@ export default {
 			<v-icon size="28">mdi-plus</v-icon>
 		</v-btn>
 
-
-
-
-
-
-		<!-- Dialog per creare booking/event -->
+		<!-- booking/event creation -->
 		<v-dialog v-model="dialog" max-width="600" persistent>
 			<v-card>
 				<v-card-title class="text-h5">Create a Booking</v-card-title>
@@ -168,6 +187,19 @@ export default {
 				<v-card-text>
 					<v-container>
 						<v-row>
+							
+							<v-col cols="12">
+								<v-select
+									label="Location"
+									v-model="bookingForm.location"
+									:items="locations"
+									item-title="name"
+									item-value="id"
+									variant="outlined"
+									:disabled="!isUserLoggedIn"
+									required
+							/>
+							</v-col>
 							<v-col cols="12" md="6">
 								<v-text-field
 									label="Start Date and Time"

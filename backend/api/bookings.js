@@ -63,6 +63,7 @@ export const bookingsNew = {
 						v.transform(Math.round),
 					),
 				),
+				location: v.pipe(v.string(), v.trim(), v.nonEmpty()),
 			}),
 			v.check(input => {
 				if (input.endTime) {
@@ -75,17 +76,22 @@ export const bookingsNew = {
 		if (req.session.isAdmin && !req.body.endTime) {
 			return res.status(400).json({ error: "Admins must provide end time" });
 		}
-
+        //Converts from milliseconds
 		let startTime = dayjs(req.body.startTime);
 		let endTime = dayjs(req.body.endTime);
+
 
 		if (startTime.isBefore(dayjs())) {
 			return res.status(400).json({ error: "Invalid time" });
 		}
+		if (!req.body.location) {
+        	return res.status(400).json({ error: "Location is required" });
+    	}
+		
 
 		if (!req.body.endTime) endTime = null;
-
-		let booking = await db.addBooking(req.session.user.id, startTime, endTime);
+        //Database want seconds
+		let booking = await db.addBooking(req.session.user.id, startTime.unix(), endTime.unix(), req.body.location);
 		res.status(200).json(booking);
 	},
 };

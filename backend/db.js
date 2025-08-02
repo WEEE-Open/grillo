@@ -39,16 +39,16 @@ export class Database {
 	 * @param {number=} endTime
 	 * @returns
 	 */
-	async addBooking(userId, startTime, endTime) {
+	async addBooking(userId, startTime, endTime, location) {
 		if (endTime == null) {
 			return this.db`
-				INSERT INTO booking ("userId", "startTime") 
-                VALUES (${userId}, ${startTime});
+				INSERT INTO booking ("userId", "startTime", "location") 
+                VALUES (${userId}, ${startTime}, ${location})
 		        RETURNING *`;
 		}
 		return this.db`
-			INSERT INTO booking ("userId", "startTime", "endTime") 
-            VALUES (${userId}, ${startTime}, ${endTime}) 
+			INSERT INTO booking ("userId", "startTime", "endTime", "location") 
+            VALUES (${userId}, ${startTime}, ${endTime}, ${location}) 
             RETURNING *;
 		`;
 	}
