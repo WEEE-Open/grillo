@@ -30,6 +30,7 @@ export default {
 			dialog: false,
 			loading: false,
 			locations: [],
+			focus: new Date().toISOString().split('T')[0], 
 			bookingForm: {
 				startTime: "",
 				endTime: "",
@@ -38,7 +39,7 @@ export default {
 		}
 	},
 	mounted (){
-		this.fetchBookings();
+		this.fetchBookings(new Date());
 		this.fetchLocations(); 
 	},
 	computed: {
@@ -66,13 +67,26 @@ export default {
 			return this.currentUser && this.currentUser.id;
 		}
 	},
+	watch: {
+		focus: {
+			handler(newFocus, oldFocus) {
+				if (newFocus !== oldFocus) {
+					this.fetchBookings(newFocus[0]);
+				}
+			}
+		}
+	},
 	methods: {
 		...mapActions(useServer, ["getBookings", "createBooking", "getLocations"]), 
 
-	
+		
+		handleFocusUpdate(newFocusDate) {
+			console.log('Focus update called with:', newFocusDate);
+			this.focus = newFocusDate;
+		},
 		async fetchLocations() {
 			try {
-				this.locations = await this.getLocations();
+				this.locations =  await this.getLocations();
 				
 				if (this.locations.length > 0) {
 					this.bookingForm.location = this.locations[0].id;
@@ -82,32 +96,40 @@ export default {
 			}
 		},
 
-		async fetchBookings() {
-			try {
-				this.events = []; 
-			    let now = Math.floor(Date.now() / 1000); // UNIX timestamp in seconds
+		async onCalendarChange(eventData) {
+			console.log('Calendar change event:', eventData);
+			
+			const startDate = eventData.start || eventData || new Date();
+			const sunday = new Date(startDate);
+			
+			await this.fetchBookings(sunday);
+		},
 
-				let dbBookings = await this.getBookings(now);
-				
+		async fetchBookings(startOfWeek) {
+			try {
+				this.events = [];
+
+				const unixStart = Math.floor(startOfWeek.getTime() / 1000);
+				const dbBookings = await this.getBookings(unixStart);
+
 				for (const dbBooking of dbBookings) {
 					const startDate = new Date(dbBooking.startTime * 1000);
-					const endDate = dbBooking.endTime ? new Date(dbBooking.endTime * 1000) : null;
-					
-					
+					const endDate = dbBooking.endTime
+						? new Date(dbBooking.endTime * 1000)
+						: null;
+
 					const calendarEvent = {
 						title: `User ${dbBooking.userId}`,
 						start: startDate,
 						end: endDate,
-						color: "green",
+						color: 'green',
 						allDay: false,
 					};
-					console.log(calendarEvent)
-					
+
 					this.events.push(calendarEvent);
 				}
-			}
-			catch(error){
-				console.log("Booking fetch failed: ", error);
+			} catch (error) {
+				console.log('Booking fetch failed: ', error);
 			}
 		},
 
@@ -133,7 +155,7 @@ export default {
 				await this.createBooking(bData);
 				this.dialog = false;
 				this.resetForm();
-				await this.fetchBookings(); 
+				await this.fetchBookings(new Date()); 
 			}
 			catch(error){
 				console.log("Booking add failed: ", error);
@@ -153,13 +175,22 @@ export default {
 				location: this.locations.length > 0 ? this.locations[0].id : "" 
 			};
 		}
-	}
+	},
+	
 };
 </script>
 <template>
 	<v-main class="position-relative">
 		<v-sheet>
-			<VCalendar :events="events" view-mode="week" :weekdays="[0, 1, 2, 3, 4, 5, 6]" :interval-duration="2*60"/>
+			<VCalendar 
+				ref="calendar"
+				:events="events" 
+				view-mode="week" 
+				:weekdays="[0, 1, 2, 3, 4, 5, 6]" 
+				:interval-duration="2*60"
+				:model-value="focus"
+				@update:model-value="handleFocusUpdate"
+			/>
 		</v-sheet>
 
 		<v-btn
