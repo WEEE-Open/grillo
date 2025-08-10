@@ -3,34 +3,24 @@ import { VCalendar } from 'vuetify/labs/VCalendar'
 import { useServer } from "../stores/server";
 import { mapActions } from "pinia";
 
-
 export default {
 	components: {
 		VCalendar,
 	},
 	data() {
-		let now = new Date();
-		let soon = new Date();
-		soon.setHours(soon.getHours() + 2);
-		/*
-		return {
-			events: [
-				{
-					title: "asd",
-					start: now,
-					end: soon,
-					color: "green",
-					allDay: false,
-				}
-			]
-		}
-			*/
+		//find current monday
+		const today = new Date();
+		const dayOfWeek = today.getDay();
+		const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+		const monday = new Date(today);
+		monday.setDate(today.getDate() - daysToSubtract);
+		
 		return {
 			events: [],
 			dialog: false,
 			loading: false,
 			locations: [],
-			focus: new Date().toISOString().split('T')[0], 
+			focus: [monday], 
 			bookingForm: {
 				startTime: "",
 				endTime: "",
@@ -44,7 +34,6 @@ export default {
 	},
 	computed: {
 		bookingDateTimeRules() {
-		
 			if (!this.bookingForm.startTime) return ["Start time is required"];
 			if (!this.bookingForm.endTime) return ["End time is required"];
 			if (!this.bookingForm.location) return ["Location is required"]; 
@@ -53,16 +42,13 @@ export default {
 			}
 			return [];
 		},
-		
 		isBookingFormValid() {
 			return this.bookingDateTimeRules.length === 0;
 		},
-
 		currentUser() {
 			const serverStore = useServer();
 			return serverStore.session.user;
 		},
-
 		isUserLoggedIn() {
 			return this.currentUser && this.currentUser.id;
 		}
@@ -70,7 +56,7 @@ export default {
 	watch: {
 		focus: {
 			handler(newFocus, oldFocus) {
-				if (newFocus !== oldFocus) {
+				if (Array.isArray(newFocus) && newFocus.length > 0 && newFocus !== oldFocus) {
 					this.fetchBookings(newFocus[0]);
 				}
 			}
@@ -78,16 +64,16 @@ export default {
 	},
 	methods: {
 		...mapActions(useServer, ["getBookings", "createBooking", "getLocations"]), 
-
 		
 		handleFocusUpdate(newFocusDate) {
 			console.log('Focus update called with:', newFocusDate);
-			this.focus = newFocusDate;
+			// ✅ sempre array
+			this.focus = Array.isArray(newFocusDate) ? newFocusDate : [newFocusDate];
 		},
+
 		async fetchLocations() {
 			try {
 				this.locations =  await this.getLocations();
-				
 				if (this.locations.length > 0) {
 					this.bookingForm.location = this.locations[0].id;
 				}
@@ -98,17 +84,21 @@ export default {
 
 		async onCalendarChange(eventData) {
 			console.log('Calendar change event:', eventData);
-			
 			const startDate = eventData.start || eventData || new Date();
-			const sunday = new Date(startDate);
-			
-			await this.fetchBookings(sunday);
+			await this.fetchBookings(startDate);
 		},
 
 		async fetchBookings(startOfWeek) {
 			try {
-				this.events = [];
-
+				this.events = [
+				{
+					title: 'Test Event',
+					start: new Date(2025, 7, 10, 9, 0),
+					end: new Date(2025, 7, 10, 11, 0),
+					color: 'red',
+					allDay: false
+				}
+				];
 				const unixStart = Math.floor(startOfWeek.getTime() / 1000);
 				const dbBookings = await this.getBookings(unixStart);
 
@@ -117,16 +107,13 @@ export default {
 					const endDate = dbBooking.endTime
 						? new Date(dbBooking.endTime * 1000)
 						: null;
-
-					const calendarEvent = {
+					this.events.push({
 						title: `User ${dbBooking.userId}`,
 						start: startDate,
 						end: endDate,
 						color: 'green',
 						allDay: false,
-					};
-
-					this.events.push(calendarEvent);
+					});
 				}
 			} catch (error) {
 				console.log('Booking fetch failed: ', error);
@@ -176,9 +163,9 @@ export default {
 			};
 		}
 	},
-	
 };
 </script>
+
 <template>
 	<v-main class="position-relative">
 		<v-sheet>
@@ -218,7 +205,6 @@ export default {
 				<v-card-text>
 					<v-container>
 						<v-row>
-							
 							<v-col cols="12">
 								<v-select
 									label="Location"
@@ -229,7 +215,7 @@ export default {
 									variant="outlined"
 									:disabled="!isUserLoggedIn"
 									required
-							/>
+								/>
 							</v-col>
 							<v-col cols="12" md="6">
 								<v-text-field
