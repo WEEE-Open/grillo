@@ -30,6 +30,7 @@ export default {
 	},
 	mounted (){
 		this.fetchBookings(new Date());
+		this.fetchEvents();
 		this.fetchLocations(); 
 	},
 	computed: {
@@ -63,11 +64,10 @@ export default {
 		}
 	},
 	methods: {
-		...mapActions(useServer, ["getBookings", "createBooking", "getLocations"]), 
+		...mapActions(useServer, ["getBookings", "createBooking", "getLocations", "getEvents"]), 
 		
 		handleFocusUpdate(newFocusDate) {
 			console.log('Focus update called with:', newFocusDate);
-			// ✅ sempre array
 			this.focus = Array.isArray(newFocusDate) ? newFocusDate : [newFocusDate];
 		},
 
@@ -86,19 +86,12 @@ export default {
 			console.log('Calendar change event:', eventData);
 			const startDate = eventData.start || eventData || new Date();
 			await this.fetchBookings(startDate);
+			await this.fetchEvents();
 		},
 
 		async fetchBookings(startOfWeek) {
 			try {
-				this.events = [
-				{
-					title: 'Test Event',
-					start: new Date(2025, 7, 10, 9, 0),
-					end: new Date(2025, 7, 10, 11, 0),
-					color: 'red',
-					allDay: false
-				}
-				];
+				
 				const unixStart = Math.floor(startOfWeek.getTime() / 1000);
 				const dbBookings = await this.getBookings(unixStart);
 
@@ -119,6 +112,28 @@ export default {
 				console.log('Booking fetch failed: ', error);
 			}
 		},
+		async fetchEvents(){
+            try {
+                const dbEvents = await this.getEvents();
+				for (const dbEvent of dbEvents) {
+					const startDate = new Date(dbEvent.startTime * 1000);
+					const endDate = dbEvent.endTime
+						? new Date(dbEvent.endTime * 1000)
+						: null;
+					this.events.push({
+						title: `${dbEvent.title}`,
+						start: startDate,
+						end: endDate,
+						color: 'red',
+						allDay: false,
+					});
+				}
+
+            } 
+            catch(error){
+                console.log("Events fetch failed: ", error);
+            }
+        },
 
 		async addBooking(){
 			try {
