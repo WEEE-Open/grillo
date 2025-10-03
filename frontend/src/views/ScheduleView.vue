@@ -25,7 +25,8 @@ export default {
 				startTime: "",
 				endTime: "",
 				location: "" 
-			}
+			},
+			endTimeTouched: false, 
 		}
 	},
 	mounted (){
@@ -34,17 +35,21 @@ export default {
 		this.fetchLocations(); 
 	},
 	computed: {
-		bookingDateTimeRules() {
+		bookingDateStartRules() {
 			if (!this.bookingForm.startTime) return ["Start time is required"];
-			if (!this.bookingForm.endTime) return ["End time is required"];
 			if (!this.bookingForm.location) return ["Location is required"]; 
+			return [];
+		},
+		bookingDateEndRules(){
+			if (!this.bookingForm.endTime) return ["End time is required"];
 			if (new Date(this.bookingForm.startTime) >= new Date(this.bookingForm.endTime)) {
 				return ["End time must be after start time"];
 			}
 			return [];
 		},
+
 		isBookingFormValid() {
-			return this.bookingDateTimeRules.length === 0;
+			return this.bookingDateStartRules.length === 0 && this.bookingDateEndRules.length;
 		},
 		currentUser() {
 			const serverStore = useServer();
@@ -170,12 +175,23 @@ export default {
 			this.dialog = true;
 		},
 
+		//autofill
+		onStartTimeUpdate(val) {
+			if (!this.endTimeTouched) {
+				this.bookingForm.endTime = val
+			}
+		},
+		onEndTimeUpdate() {
+			this.endTimeTouched = true;
+		},
+
 		resetForm() {
 			this.bookingForm = {
 				startTime: "",
 				endTime: "",
 				location: this.locations.length > 0 ? this.locations[0].id : "" 
 			};
+			this.endTimeTouched = false; 
 		}
 	},
 };
@@ -237,10 +253,11 @@ export default {
 									label="Start Date and Time"
 									v-model="bookingForm.startTime"
 									type="datetime-local"
-									:rules="bookingDateTimeRules"
+									:rules="bookingDateStartRules"
 									variant="outlined"
 									:disabled="!isUserLoggedIn"
 									required
+									@update:model-value="onStartTimeUpdate"
 								/>
 							</v-col>
 							<v-col cols="12" md="6">
@@ -248,10 +265,11 @@ export default {
 									label="End Date and Time"
 									v-model="bookingForm.endTime"
 									type="datetime-local"
-									:rules="bookingDateTimeRules"
+									:rules="bookingDateEndRules"
 									variant="outlined"
 									:disabled="!isUserLoggedIn"
 									required
+									@update:model-value="onEndTimeUpdate"
 								/>
 							</v-col>
 						</v-row>
