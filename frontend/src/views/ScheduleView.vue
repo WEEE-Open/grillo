@@ -49,7 +49,7 @@ export default {
 		},
 
 		isBookingFormValid() {
-			return this.bookingDateStartRules.length === 0 && this.bookingDateEndRules.length;
+			return this.bookingDateStartRules.length === 0 && this.bookingDateEndRules.length === 0;
 		},
 		currentUser() {
 			const serverStore = useServer();
