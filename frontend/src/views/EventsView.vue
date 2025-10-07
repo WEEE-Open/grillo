@@ -17,7 +17,8 @@ export default {
                 description: '',
                 startTime: '',
                 endTime: ''
-            }
+            },
+            endTimeTouched: false, 
         }
     },
     mounted(){
@@ -26,16 +27,22 @@ export default {
     computed: {
         inputRules() {
             if (!this.record.title) return ["Title is required"];
-            if (!this.record.startTime) return ["Start time is required"];
+            return [];
+           
+        },
+        startTimeRule(){
+             if (!this.record.startTime) return ["Start time is required"];
+             return [];
+        },
+        endTimeRules(){
             if (!this.record.endTime) return ["End time is required"];
             if (new Date(this.record.startTime) >= new Date(this.record.endTime)) {
                 return ["End time must be after start time"];
             }
             return [];
         },
-        
         isEventFormValid() {
-            return this.inputRules.length === 0;
+            return this.inputRules.length === 0 && this.startTimeRule.length == 0 && this.endTimeRules == 0;
         }
     },
     methods: {
@@ -152,6 +159,17 @@ export default {
                 minute: '2-digit'
             });
         },
+
+        //autofill
+		onStartTimeUpdate(val) {
+			if (!this.endTimeTouched) {
+				this.record.endTime = val
+			}
+		},
+		onEndTimeUpdate() {
+			this.endTimeTouched = true;
+		},
+
     }
 };
 </script>
@@ -282,8 +300,9 @@ export default {
                                     label="Start Date and Time"
                                     type="datetime-local"
                                     variant="outlined"
-                                    :rules="inputRules"
+                                    :rules="startTimeRule"
                                     required
+                                    @update:model-value="onStartTimeUpdate"
                                 />
                             </v-col>
                             
@@ -293,8 +312,9 @@ export default {
                                     label="End Date and Time"
                                     type="datetime-local"
                                     variant="outlined"
-                                    :rules="inputRules"
+                                    :rules="endTimeRules"
                                     required
+                                    @update:model-value="onEndTimeUpdate"
                                 />
                             </v-col>
                         </v-row>
