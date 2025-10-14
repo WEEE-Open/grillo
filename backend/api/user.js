@@ -7,6 +7,14 @@ export const user = {
 	auth: "RO",
 	route: "/user",
 	async handler(req, res) {
+		// support optional lookup by telegram_id for bot flows
+		const telegramID = req.query.telegram_id || req.query.telegramID || null;
+		if (telegramID) {
+			const user = await db.getUserbyTelegramID(telegramID);
+			if (!user) return res.status(404).json({ error: "User not found" });
+			return res.json(user);
+		}
+
 		res.json(req.session);
 	},
 };

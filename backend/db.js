@@ -42,13 +42,13 @@ export class Database {
 	async addBooking(userId, startTime, endTime, location) {
 		if (endTime == null) {
 			return this.db`
-				INSERT INTO booking ("userId", "startTime", "location") 
+				INSERT INTO booking ("userId", "startTime", "location")
                 VALUES (${userId}, ${startTime}, ${location})
 		        RETURNING *`;
 		}
 		return this.db`
-			INSERT INTO booking ("userId", "startTime", "endTime", "location") 
-            VALUES (${userId}, ${startTime}, ${endTime}, ${location}) 
+			INSERT INTO booking ("userId", "startTime", "endTime", "location")
+            VALUES (${userId}, ${startTime}, ${endTime}, ${location})
             RETURNING *;
 		`;
 	}
@@ -65,7 +65,7 @@ export class Database {
  		const result = await this.db`
 			SELECT "userId", "startTime", "endTime"
 			FROM booking
-			WHERE "startTime" >= ${startWeek} 
+			WHERE "startTime" >= ${startWeek}
 			AND ("endTime" <= ${endWeek} OR "endTime" IS NULL)
 			${users && users.length > 0 ? this.db`AND "userId" IN ${this.db(users)}` : this.db``}
 			${location ? this.db`AND location = ${location}` : this.db``};`;
@@ -129,10 +129,20 @@ export class Database {
 		});
 	}
 
+	async getUserbyTelegramID(telegramID) {
+		this.getUsers();
+		let ldapUser = (await this.ldap.getUsers()).filter(user => user.telegramID === telegramID)[0];
+		if (ldapUser == null) {
+			return null;
+		}
+		return ldapUser;
+	}
+
+
 	async getUsersInLocation(locationId) {
 		let dbData = await this.db`
             SELECT * FROM "user"
-			WHERE activeLocation = ${locationId};
+			WHERE "activeLocation" = ${locationId};
         `;
 		let ldapData = await this.ldap.getUsers();
 		return dbData.map(dbUser => {
@@ -227,7 +237,7 @@ export class Database {
 		if (!id || !hash) {
 			return null;
 		}
-		let dbData = await this.getToken(id);
+		let dbData = await this.getApiToken(id);
 		if (dbData == undefined || !(await bcrypt.compare(hash, dbData.hash))) {
 			return null;
 		}
@@ -269,7 +279,7 @@ export class Database {
 
 	async getLocations() {
 		const location = await this.db`
-            SELECT * 
+            SELECT *
             FROM "location"
         `;
 		let defaultLocation = await this.getConfig("defaultLocation");
@@ -281,7 +291,7 @@ export class Database {
 
 	async getLocation(id) {
 		let location = await this.db`
-            SELECT * 
+            SELECT *
             FROM "location"
             WHERE id = ${id}
         `;
@@ -333,14 +343,14 @@ export class Database {
 		if (timeOut == null) {
 			return (
 				await this.db`
-				INSERT INTO audit ("userId", "startTime", "location", "approved")  
+				INSERT INTO audit ("userId", "startTime", "location", "approved")
                 VALUES (${userId}, ${timeIn},${locationId},${approved})
 		        RETURNING *;`
 			)[0];
 		}
 
 		return this.db`
-			INSERT INTO "audit" ("userId", "startTime", "endTime", "location", "summary", "approved") 
+			INSERT INTO "audit" ("userId", "startTime", "endTime", "location", "summary", "approved")
 			VALUES (${userId}, ${timeIn}, ${timeOut}, ${locationId}, ${summary},${approved})
 			RETURNING *;`[0];
 	}
@@ -349,8 +359,8 @@ export class Database {
 		return (
 			(
 				await this.db`
-		SELECT id FROM audit 
-		WHERE "userId" = ${userId} AND "endTime" IS NULL 
+		SELECT id FROM audit
+		WHERE "userId" = ${userId} AND "endTime" IS NULL
 		ORDER BY "startTime" DESC
 		LIMIT 1
 	`
@@ -369,12 +379,12 @@ export class Database {
 		const startDay = Math.floor(today.getTime() / 1000);
 		const endDay = Math.floor(tomorrow.getTime() / 1000);
 		let toDelete = await this.db.run`SELECT id FROM "booking"
-                                    WHERE userId = ${userId} 
+                                    WHERE userId = ${userId}
                                         AND startTime >= ${startDay}
                                         AND startTime < ${endDay}
                                         AND startTime = (SELECT MIN(startTime)
                                                         FROM "booking"
-                                                        WHERE userId = ${userId} 
+                                                        WHERE userId = ${userId}
                                                         AND startTime >= ${startDay}
                                                         AND startTime < ${endDay})`;
 		if (toDelete.rows && toDelete.rows.length > 0) {
@@ -387,7 +397,7 @@ export class Database {
 		return (
 			(
 				await this.db`
-		SELECT * 
+		SELECT *
 		FROM audit
 		WHERE id = ${id}
 	`
@@ -416,7 +426,7 @@ export class Database {
 		return this.db`
                 SELECT *
                 FROM audit
-                WHERE "startTime" >= ${startWeek} 
+                WHERE "startTime" >= ${startWeek}
                         AND "endTime" <= ${endWeek}
                         AND "userId" IN (${this.db(users)});`;
 	}
@@ -434,7 +444,7 @@ export class Database {
 	getStats(startTime, endTime, user) {
 		return new Promise((resolve, reject) => {
 			let sql = `SELECT A1.userId, SUM(time(A2.time) - time(A1.time)) as stat
-            FROM audit A1, audit A2 
+            FROM audit A1, audit A2
             WHERE A1.userId = A2.userId AND CAST(A1.time AS DATE) = CAST(A2.time AS) AND A1.enter = 1 AND A2.enter = 0 AND A1.time < A2.time
             AND A2.time = (SELECT MIN(time) FROM audit A WHERE A.userId = A1.userId AND A1.time < A.time)`;
 
@@ -476,7 +486,7 @@ export class Database {
 
 	async getEvents() {
 		const event = await this.db`
-            SELECT * 
+            SELECT *
             FROM "event";
         `;
 		return event;
@@ -484,7 +494,7 @@ export class Database {
 
 	async getEvent(id) {
 		const event = await this.db`
-            SELECT * 
+            SELECT *
             FROM "event"
             WHERE id = ${id};
         `;
@@ -536,13 +546,13 @@ export class Database {
 		const expirationTime = parseInt(Date.now() / 1000 + 60); //one minute expiration time
 		if (userId === undefined) {
 			return await this.db`
-				INSERT INTO codes ("code", "expirationTime") 
-				VALUES (${code}, ${expirationTime}) 
+				INSERT INTO codes ("code", "expirationTime")
+				VALUES (${code}, ${expirationTime})
 				RETURNING *;`;
 		} else {
 			return await this.db`
-				INSERT INTO codes ("code", "userId", "expirationTime") 
-				VALUES (${code}, ${userId}, ${expirationTime}) 
+				INSERT INTO codes ("code", "userId", "expirationTime")
+				VALUES (${code}, ${userId}, ${expirationTime})
 				RETURNING *;`;
 		}
 	}

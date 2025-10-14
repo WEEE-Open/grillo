@@ -30,8 +30,8 @@ export const locationsId = {
 		let people = await db.getUsersInLocation(location.id);
 
 		let date = dayjs();
-		startWeek = date.startOf("isoWeek").unix();
-		endWeek = date.endOf("isoWeek").unix();
+		let startWeek = date.startOf("isoWeek").unix();
+		let endWeek = date.endOf("isoWeek").unix();
 		const bookings = await db.getBookings(startWeek, endWeek, null, req.params.id);
 
 		res.json({
