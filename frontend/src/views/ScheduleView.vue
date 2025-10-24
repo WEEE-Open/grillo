@@ -41,9 +41,17 @@ export default {
 	computed: {
 		bookingDateStartRules() {
 			if (!this.bookingForm.startTime) return ["Start time is required"];
-			if (!this.bookingForm.location) return ["Location is required"]; 
+			if (new Date(this.bookingForm.startTime) <= new Date()) {
+				return ["Start time cannot be in the past!"]};
+
 			return [];
 		},
+
+				bookingLocationRules() {
+								if (!this.bookingForm.location) return ["Location is required"]; 
+return [];},
+
+
 		bookingDateEndRules(){
 			if (!this.bookingForm.endTime) return ["End time is required"];
 			if (new Date(this.bookingForm.startTime) >= new Date(this.bookingForm.endTime)) {
@@ -52,8 +60,9 @@ export default {
 			return [];
 		},
 
+
 		isBookingFormValid() {
-			return this.bookingDateStartRules.length === 0 && this.bookingDateEndRules.length === 0;
+			return this.bookingDateStartRules.length === 0 && this.bookingDateEndRules.length === 0 && this.bookingLocationRules.length === 0;
 		},
 		currentUser() {
 			const serverStore = useServer();
@@ -263,6 +272,7 @@ export default {
 									label="Location"
 									v-model="bookingForm.location"
 									:items="locations"
+									:rules="bookingLocationRules"
 									item-title="name"
 									item-value="id"
 									variant="outlined"
