@@ -329,6 +329,18 @@ export class Database {
 		return result[0];
 	}
 
+	//Check if there is violation in foreing key
+	/*****/
+
+    async countBookingsInLocation(id) {
+        const res = await this.db`
+            SELECT COUNT(*) AS count
+            FROM "booking"
+            WHERE "location" = ${id};
+        `;
+        return res[0].count;
+    }
+
 	// #endregion
 
 	// #region audit
