@@ -19,15 +19,19 @@ export const bookings = {
 		const startWeek = date.startOf("isoWeek").unix();
 		const endWeek = date.endOf("isoWeek").unix();
 
-		/*
+		
 		let user = await db.getUser(userId);
 		if (!user) {
 			return res.status(404).json({ error: "User not found" });
 		}
-		*/
+		console.log(user);
+		const isAdmin = user.groups.includes("soviet");
+		console.log(isAdmin)
 		
+		//adding name and if is an admin, for calendar visualization purpose
+		const result  = await db.getBookings(startWeek, endWeek, [userId]);
+		const bookings = result.map(b => ({ ...b, name: user.printableName, isAdmin: isAdmin}));
 
-		const bookings = await db.getBookings(startWeek, endWeek, [userId]);
 		res.json(bookings);
 	},
 };

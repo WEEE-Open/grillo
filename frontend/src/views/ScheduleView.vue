@@ -27,6 +27,10 @@ export default {
 				location: "" 
 			},
 			endTimeTouched: false, 
+			// event details menu state
+			selectedEvent: {},
+			selectedElement: null,
+			selectedOpen: false,
 		}
 	},
 	mounted (){
@@ -76,6 +80,22 @@ export default {
 			this.focus = Array.isArray(newFocusDate) ? newFocusDate : [newFocusDate];
 		},
 
+		showEvent(payload) {
+			
+			try {
+				const { event, nativeEvent } = payload || {};
+				this.selectedEvent = event || {};
+
+				this.selectedElement = (payload && payload.element) || (nativeEvent && nativeEvent.currentTarget) || (nativeEvent && nativeEvent.target) || null;
+
+				requestAnimationFrame(() => {
+					this.selectedOpen = true;
+				});
+			} catch (e) {
+				console.warn('Failed to open event details menu:', e);
+			}
+		},
+
 		async fetchLocations() {
 			try {
 				this.locations =  await this.getLocations();
@@ -106,7 +126,7 @@ export default {
 						? new Date(dbBooking.endTime * 1000)
 						: null;
 					this.events.push({
-						title: `User ${dbBooking.userId}`,
+						title: `${dbBooking.name}`,
 						start: startDate,
 						end: endDate,
 						color: 'green',
@@ -208,7 +228,9 @@ export default {
 				:interval-duration="2*60"
 				:model-value="focus"
 				@update:model-value="handleFocusUpdate"
+				@click:event="openAddEventDialog"
 			/>
+
 		</v-sheet>
 
 		<v-btn
