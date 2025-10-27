@@ -416,6 +416,14 @@ export class Database {
 			)[0] ?? null
 		);
 	}
+	async getAuditsByLocation(id){
+		return this.db`
+			SELECT *
+			FROM audit 
+			WHERE "location" = ${id}
+
+		`
+	}
 
 	async editAudit(id, startTime, endTime, summary, approved, location) {
 		return this.db`

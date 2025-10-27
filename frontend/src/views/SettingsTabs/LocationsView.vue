@@ -6,172 +6,219 @@ const NAME_MIN_LENGTH = 2;
 const NAME_MAX_LENGTH = 255;
 
 export default {
-	data() {
-		return {
-			locations: [],
-			loading: false,
-			dialog: false,
-			isEditing: false,
-			idModified: false, //stop id prediction
-			confirmDialogDelete: false,
-			confirmDialogDefault: false,
-			itemToDelete: null, // for confirmation dialog
-			itemToChange: null,
-			record: {
-				id: "",
-				name: "",
-			},
-			headers: [
-				{ title: "ID", key: "id", align: "start", width: "30%" },
-				{ title: "Name", key: "name", align: "start", width: "50%" },
-				{ title: "Actions", key: "actions", align: "end", width: "20%", sortable: false },
-			],
-		};
-	},
-	computed: {
-		maxLength() {
-			return NAME_MAX_LENGTH; //return the const usable in the template
-		},
-		nameRules() {
-			if (!this.record.name) return ["Name is required"];
-			if (this.record.name.length > NAME_MAX_LENGTH)
-				return [`Name must be less than ${NAME_MAX_LENGTH} characters`];
-			if (this.record.name.length < NAME_MIN_LENGTH)
-				return [`Name must be at least ${NAME_MIN_LENGTH} characters`];
+    data() {
+        return {
+            locations: [],
+            loading: false,
+            dialog: false,
+            bulkMoveDialog: false,
+            isEditing: false,
+            idModified: false, //stop id prediction
+            confirmDialogDelete: false,
+            confirmDialogDefault: false,
+            itemToDelete: null, // for confirmation dialog
+            itemToChange: null,
+            bulkMove: {
+                from: null,
+                to: null,
+            },
+            bulkFromCount: 0,
+            record: {
+                id: "",
+                name: "",
+            },
+            headers: [
+                { title: "ID", key: "id", align: "start", width: "30%" },
+                { title: "Name", key: "name", align: "start", width: "50%" },
+                { title: "Actions", key: "actions", align: "end", width: "20%", sortable: false },
+            ],
+        };
+    },
+    computed: {
+        maxLength() {
+            return NAME_MAX_LENGTH; //return the const usable in the template
+        },
+        nameRules() {
+            if (!this.record.name) return ["Name is required"];
+            if (this.record.name.length > NAME_MAX_LENGTH)
+                return [`Name must be less than ${NAME_MAX_LENGTH} characters`];
+            if (this.record.name.length < NAME_MIN_LENGTH)
+                return [`Name must be at least ${NAME_MIN_LENGTH} characters`];
 
-			return [];
-		},
+            return [];
+        },
 
-		idRules() {
-			if (!this.record.id) return ["ID is required"];
-			if (!/^[a-z0-9-]+$/.test(this.record.id))
-				return ["ID can only contain lowercase letters, numbers, and hyphens"];
+        idRules() {
+            if (!this.record.id) return ["ID is required"];
+            if (!/^[a-z0-9-]+$/.test(this.record.id))
+                return ["ID can only contain lowercase letters, numbers, and hyphens"];
 
-			if (!this.isEditing && this.isExistingId(this.record.id)) {
-				return ["This ID already exists"];
-			}
+            if (!this.isEditing && this.isExistingId(this.record.id)) {
+                return ["This ID already exists"];
+            }
 
-			return [];
-		},
-		inputIsValid() {
-			return this.nameRules.length === 0 && this.idRules.length === 0;
-		},
-	},
-	watch: {
-		//when record.name is modified
-		"record.name": {
-			handler(newVal) {
-				if (!this.isEditing && newVal && !this.idModified) {
-					this.record.id = this.generateLocationId(newVal);
-				}
-			},
-			immediate: true,
-		},
-	},
-	methods: {
-		...mapActions(useServer, [
-			"getLocations",
-			"createLocation",
-			"updateLocation",
-			"deleteLocation",
-			"setConfig",
-		]),
-		async fetchLocations() {
-			try {
-				this.locations = await this.getLocations();
-			} catch (error) {
-				console.error("Locations fetch failed:", error);
-			}
-		},
-		generateLocationId(name) {
-			return name
-				.toLowerCase()
-				.trim()
-				.replace(/\s+/g, "-") //replace space with -
-				.replace(/[^a-z0-9-]/g, ""); //no special char allowed, keeps only char and numberszsz
-		},
+            return [];
+        },
+        inputIsValid() {
+            return this.nameRules.length === 0 && this.idRules.length === 0;
+        },
+    },
+    watch: {
+        //when record.name is modified
+        "record.name": {
+            handler(newVal) {
+                if (!this.isEditing && newVal && !this.idModified) {
+                    this.record.id = this.generateLocationId(newVal);
+                }
+            },
+            immediate: true,
+        },
+        "bulkMove.from": {
+            async handler(newVal) {
+                await this.updateBulkFromCount(newVal);
+            },
+        },
+    },
+    methods: {
+        ...mapActions(useServer, [
+            "getLocations",
+            "createLocation",
+            "updateLocation",
+            "deleteLocation",
+            "setConfig",
+            "getAuditsByLocation",
+            "bulkMoveAudits",
+        ]),
+        async fetchLocations() {
+            try {
+                this.locations = await this.getLocations();
+            } catch (error) {
+                console.error("Locations fetch failed:", error);
+            }
+        },
+        generateLocationId(name) {
+            return name
+                .toLowerCase()
+                .trim()
+                .replace(/\s+/g, "-") //replace space with -
+                .replace(/[^a-z0-9-]/g, ""); //no special char allowed, keeps only char and numberszsz
+        },
 
-		async saveLocation() {
-			try {
-				let result;
-				if (this.isEditing) {
-					result = await this.updateLocation(this.record);
-				} else {
-					result = await this.createLocation(this.record);
-				}
+        async saveLocation() {
+            try {
+                let result;
+                if (this.isEditing) {
+                    result = await this.updateLocation(this.record);
+                } else {
+                    result = await this.createLocation(this.record);
+                }
 
-				if (result) {
-					this.dialog = false;
-					await this.fetchLocations();
-				}
-			} catch (error) {
-				console.error(
-					this.isEditing ? "Location edit failed:" : "Location creation failed:",
-					error,
-				);
-			}
-		},
+                if (result) {
+                    this.dialog = false;
+                    await this.fetchLocations();
+                }
+            } catch (error) {
+                console.error(
+                    this.isEditing ? "Location edit failed:" : "Location creation failed:",
+                    error,
+                );
+            }
+        },
 
-		async removeLocation(item) {
-			try {
-				let result = await this.deleteLocation(item);
-				if (result) {
-					this.fetchLocations(); //check if there is a better method lolz
-					this.confirmDialogDelete = false;
-				}
-			} catch (error) {
-				console.error("Location deletion failed:", error);
-			}
-		},
+        async removeLocation(item) {
+            try {
+                let result = await this.deleteLocation(item);
+                if (result) {
+                    this.fetchLocations(); //check if there is a better method lolz
+                    this.confirmDialogDelete = false;
+                }
+            } catch (error) {
+                console.error("Location deletion failed:", error);
+            }
+        },
 
-		async setDefaultLocation(item) {
-			try {
-				let result = await this.setConfig('defaultLocation', item.id);
-				console.log(result);
-				if (result) {
-					this.fetchLocations(); //check if there is a better method lolz
-					this.confirmDialogDefault = false;
-				}
-			} catch (error) {
-				console.error("Setting default location failed:", error);
-			}
-		},
+        async setDefaultLocation(item) {
+            try {
+                let result = await this.setConfig('defaultLocation', item.id);
+                console.log(result);
+                if (result) {
+                    this.fetchLocations(); //check if there is a better method lolz
+                    this.confirmDialogDefault = false;
+                }
+            } catch (error) {
+                console.error("Setting default location failed:", error);
+            }
+        },
 
-		edit(item) {
-			this.isEditing = true;
-			this.record = { ...item };
-			this.dialog = true;
-		},
+        edit(item) {
+            this.isEditing = true;
+            this.record = { ...item };
+            this.dialog = true;
+        },
 
-		add() {
-			this.isEditing = false;
-			this.record = {
-				id: "",
-				name: "",
-			};
-			this.idModified = false;
-			this.dialog = true;
-		},
-		confirmDelete(item) {
-			this.itemToDelete = item;
-			this.confirmDialogDelete = true;
-		},
-		confirmDefault(item) {
-			this.itemToChange = item;
-			this.confirmDialogDefault = true;
-		},
-		isExistingId(id) {
-			return this.locations.some(location => location.id === id);
-		},
-		handleIdInput() {
-			if (!this.isEditing) {
-				this.idModified = true;
-			}
-		},
-	},
-	mounted() {
-		this.fetchLocations();
-	},
+        add() {
+            this.isEditing = false;
+            this.record = {
+                id: "",
+                name: "",
+            };
+            this.idModified = false;
+            this.dialog = true;
+        },
+        openBulkMoveDialog() {
+            this.bulkMove = { from: null, to: null };
+            this.bulkFromCount = 0;
+            this.bulkMoveDialog = true;
+        },
+        closeBulkMoveDialog() {
+            this.bulkMoveDialog = false;
+        },
+
+        async updateBulkFromCount(fromId) {
+            try {
+                this.bulkFromCount = 0;
+                if (!fromId || fromId === this.bulkMove.to) return;
+                const audits = await this.getAuditsByLocation(fromId);
+				console.log(fromId);
+                this.bulkFromCount = Array.isArray(audits) ? audits.length : 0;
+            } catch (e) {
+                console.error("Failed to load audits count for source location:", e);
+                this.bulkFromCount = 0;
+            }
+        },
+        async confirmBulkMove() {
+            try {
+                this.loading = true;
+                await this.bulkMoveAudits(this.bulkMove.from, this.bulkMove.to);
+                this.bulkMoveDialog = false;
+                await this.fetchLocations();
+            } catch (error) {
+                console.error("Bulk move failed:", error);
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        confirmDelete(item) {
+            this.itemToDelete = item;
+            this.confirmDialogDelete = true;
+        },
+        confirmDefault(item) {
+            this.itemToChange = item;
+            this.confirmDialogDefault = true;
+        },
+        isExistingId(id) {
+            return this.locations.some(location => location.id === id);
+        },
+        handleIdInput() {
+            if (!this.isEditing) {
+                this.idModified = true;
+            }
+        },
+    },
+    mounted() {
+        this.fetchLocations();
+    },
 };
 </script>
 
@@ -189,6 +236,7 @@ export default {
 				<v-toolbar flat>
 					<v-toolbar-title>Locations</v-toolbar-title>
 					<v-spacer></v-spacer>
+					<v-btn color="primary" prepend-icon="mdi-swap-horizontal" @click="openBulkMoveDialog">Bulk Move</v-btn>
 					<v-btn color="primary" prepend-icon="mdi-plus" @click="add">Add Location</v-btn>
 					<v-btn class="ml-2" @click="fetchLocations">Refresh</v-btn>
 				</v-toolbar>
@@ -257,11 +305,59 @@ export default {
 		</v-card>
 	</v-dialog>
 
+	<!-- Bulk move dialog -->
+	<v-dialog v-model="bulkMoveDialog" max-width="400">
+		<v-card>
+			<v-card-title>Bulk move registrations</v-card-title>
+			<v-card-text>
+
+				<v-row dense>
+					<v-col cols="12">
+						<v-select
+							label="From location"
+							:items="locations"
+							item-title="name"
+							item-value="id"
+							v-model="bulkMove.from"
+							hint="Select the source location"
+							persistent-hint
+						/>
+					</v-col>
+					<v-col cols="12">
+						<v-select
+							label="To location"
+							:items="locations.filter(l => l.id !== bulkMove.from)"
+							item-title="name"
+							item-value="id"
+							v-model="bulkMove.to"
+							hint="Select the destination location"
+							persistent-hint
+						/>
+					</v-col>
+					<v-col cols="12">
+                        <v-alert
+                            variant="tonal"
+                            type="info"
+                            density="compact"
+                        >
+                            Audits in source: <strong>{{ bulkFromCount }}</strong>
+                        </v-alert>
+                    </v-col>
+				</v-row>
+			</v-card-text>
+			<v-card-actions>
+				<v-btn variant="text" @click="closeBulkMoveDialog">Cancel</v-btn>
+				<v-spacer></v-spacer>
+				<v-btn color="primary" :disabled="!bulkMove.from || !bulkMove.to || bulkMove.from === bulkMove.to" @click="confirmBulkMove">Move</v-btn>
+			</v-card-actions>
+		</v-card>
+	</v-dialog>
+
 	<v-dialog v-model="confirmDialogDefault" max-width="400">
 		<v-card>
 			<v-card-title class="text-h5">Confirm Changing Default Location</v-card-title>
 			<v-card-text>
-				Are you sure you want to chage the default location to "{{ itemToChange?.name }}"?
+				Are you sure you want to change the default location to "{{ itemToChange?.name }}"?
 			</v-card-text>
 			<v-card-actions>
 				<v-spacer></v-spacer>

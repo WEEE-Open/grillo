@@ -111,21 +111,7 @@ export const useServer = defineStore("server", {
 			}
 			//da finire
 		},
-		async getLocations() {
-			let [request, abort] = this.makeRequest("GET", "/locations");
-			let response = await request;
-			if (response.ok) {
-				return await response.json();
-			} else {
-				if (response.status === 401) {
-					throw new Error("Not authenticated");
-				} else if (response.status === 403) {
-					throw new Error("No permission");
-				} else {
-					throw new Error("Error occurred during locations load");
-				}
-			} //Da controllare tutti gli errori
-		},
+
 		async deleteToken(token) {
 			let [request, abort] = this.makeRequest("DELETE", `/tokens/${token.id}`);
 
@@ -169,6 +155,23 @@ export const useServer = defineStore("server", {
 				throw error;
 			}
 		},
+
+		async getLocations() {
+			let [request, abort] = this.makeRequest("GET", "/locations");
+			let response = await request;
+			if (response.ok) {
+				return await response.json();
+			} else {
+				if (response.status === 401) {
+					throw new Error("Not authenticated");
+				} else if (response.status === 403) {
+					throw new Error("No permission");
+				} else {
+					throw new Error("Error occurred during locations load");
+				}
+			} //Da controllare tutti gli errori
+		},
+
 		async createLocation(location) {
 			let [request, abort] = this.makeRequest("POST", "/locations", {
 				id: location.id,
@@ -367,6 +370,39 @@ export const useServer = defineStore("server", {
 					throw new Error("Error occurred during event deletion");
 				}
 			}
+		},
+
+		//AUDITS
+		async getAuditsByLocation(locationId){
+			let [request, abort] = this.makeRequest("GET", `/audits/location/${locationId}`)
+
+			let response = await request;
+			if(response.ok){
+				return response.json();
+			}
+			else{
+				throw new Error("Some error occured");
+			}
+
+		},
+
+		async bulkMoveAudits(fromId, toId){
+			let payload = {
+				fromId: fromId,
+			};
+
+			let [request, abort] = this.makeRequest("PATCH", `/audits/location/${toId}`, payload)
+
+
+			let response = await request;
+			if(response.ok){
+				return true;
+			}
+			else{
+				throw new Error("Some error occured");
+			}
+
+
 		}
 	},
 });

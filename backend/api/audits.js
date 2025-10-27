@@ -20,6 +20,7 @@ export const audits = {
 	},
 };
 
+
 export const auditsId = {
 	auth: "RO",
 	route: "/audits/:id",
@@ -31,6 +32,18 @@ export const auditsId = {
 		res.json(audit);
 	},
 };
+
+export const auditsLocation = {
+	auth: "RO",
+	route: "/audits/location/:id",
+	async handler(req, res){
+		let audit = await db.getAuditsByLocation(req.params.id);
+		if (!audit) {
+			return res.status(404).json("Audit not found");
+		}
+		res.json(audit);
+	}
+}
 
 export const auditsNew = {
 	auth: "RW",
@@ -313,5 +326,64 @@ export const auditsIdDelete = {
 
 		await db.deleteAudit(req.params.id);
 		res.status(204).send();
+	},
+};
+
+export const auditsPatchLocation = {
+	auth: "RW",
+	method: "PATCH",
+	route: "/audits/location/:id",
+	body: () =>
+		v.object({
+
+			fromId: v.pipe(
+				v.string(),
+				v.trim(),
+				v.nonEmpty(),
+				v.notValue("default"),
+				v.regex(/^[a-zA-Z0-9-]+$/),
+			),
+		}),
+	async handler(req, res) {
+		// Resolve target location
+		let targetLocationId = req.params.id;
+		const targetLocation = await db.getLocation(targetLocationId);
+		if (!targetLocation) {
+			return res.status(404).json({ error: "Location not found" });
+		}
+
+		// Load audits to move 
+		const fromLocationId = req.body.fromId;
+		const fromLocation = await db.getLocation(fromLocationId);
+        if (!fromLocation) {
+            return res.status(404).json({ error: "Source location not found" });
+        }
+        const audits = await db.getAuditsByLocation(fromLocationId);
+
+
+		// Permission checks for non-admins
+		if (!req.session.isAdmin) {
+			for (const a of audits) {
+				if (a.userId != req.session.user.id || a.approved) {
+					return res.status(403).json({ error: "Not authorized" });
+				}
+			}
+		}
+
+		//apply change
+		const edited = await Promise.all(
+			audits.map(async a => (
+				await db.editAudit(
+					a.id,
+					a.startTime,
+					a.endTime,
+					a.summary,
+					a.approved,
+					targetLocation.id,
+				)
+			)[0]),
+		);
+
+		res.json(edited);
 	},
 };
