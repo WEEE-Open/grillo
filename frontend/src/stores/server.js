@@ -374,7 +374,7 @@ export const useServer = defineStore("server", {
 
 		//AUDITS
 		async getAuditsByLocation(locationId){
-			let [request, abort] = this.makeRequest("GET", `/audits/location/${locationId}`)
+			let [request, abort] = this.makeRequest("GET", `/audits/location/${locationId}`);
 
 			let response = await request;
 			if(response.ok){

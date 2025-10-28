@@ -112,8 +112,13 @@ BEGIN
     FROM audit
     WHERE "userId" = user_id AND "endTime" IS NOT NULL AND "approved"=true;
 
-    -- Determine if the user is currently logged in a location
-    SELECT EXISTS (SELECT location FROM audit WHERE "userId" = NEW."userId" AND "endTime" IS NULL) INTO active_location;
+    -- Determine if the user is currently logged in a location, extract the location
+    SELECT "location"
+    INTO active_location
+    FROM audit
+    WHERE "userId" = NEW."userId"
+    AND "endTime" IS NULL
+    LIMIT 1;
 
     -- Update the seconds and activeLocation fields in the user table
     UPDATE "user"

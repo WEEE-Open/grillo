@@ -37,11 +37,11 @@ export const auditsLocation = {
 	auth: "RO",
 	route: "/audits/location/:id",
 	async handler(req, res){
-		let audit = await db.getAuditsByLocation(req.params.id);
-		if (!audit) {
+		let audits = await db.getAuditsByLocation(req.params.id);
+		if (!audits) {
 			return res.status(404).json("Audit not found");
 		}
-		res.json(audit);
+		res.json(audits);
 	}
 }
 
@@ -354,6 +354,8 @@ export const auditsPatchLocation = {
 
 		// Load audits to move 
 		const fromLocationId = req.body.fromId;
+		console.log("Eccomi")
+		console.log(fromLocationId)
 		const fromLocation = await db.getLocation(fromLocationId);
         if (!fromLocation) {
             return res.status(404).json({ error: "Source location not found" });

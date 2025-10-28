@@ -179,7 +179,6 @@ export default {
                 this.bulkFromCount = 0;
                 if (!fromId || fromId === this.bulkMove.to) return;
                 const audits = await this.getAuditsByLocation(fromId);
-				console.log(fromId);
                 this.bulkFromCount = Array.isArray(audits) ? audits.length : 0;
             } catch (e) {
                 console.error("Failed to load audits count for source location:", e);
