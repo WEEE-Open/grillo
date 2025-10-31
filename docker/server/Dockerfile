@@ -18,6 +18,9 @@ COPY . .
 
 # ! In prod you are ecpected to provide the config file
 
+# https://github.com/vuejs/devtools/issues/977
+ENV NODE_OPTIONS='--no-webstorage'
+
 RUN npm run frontend:prod
 
 # Expose ports
