@@ -98,7 +98,7 @@ CREATE OR REPLACE FUNCTION update_user_seconds()
 RETURNS TRIGGER AS $$
 DECLARE
     total_seconds INTEGER;
-    active_location BOOLEAN;
+    active_location TEXT;
     user_id VARCHAR(255);
 BEGIN
     -- Use id from old if deleting
