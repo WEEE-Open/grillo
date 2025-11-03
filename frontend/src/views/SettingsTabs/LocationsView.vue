@@ -17,6 +17,8 @@ export default {
             confirmDialogDelete: false,
             confirmDialogDefault: false,
             itemToDelete: null, // for confirmation dialog
+            deleteAuditsCount: 0, // audits count for delete guard
+            deleteBlocked: false, //if audits are more than 0
             itemToChange: null,
             bulkMove: {
                 from: null,
@@ -198,9 +200,29 @@ export default {
             }
         },
 
-        confirmDelete(item) {
+        async confirmDelete(item) {
             this.itemToDelete = item;
+            this.deleteAuditsCount = 0;
+            this.deleteBlocked = false;
+            try {
+                const audits = await this.getAuditsByLocation(item.id);
+                const count = Array.isArray(audits) ? audits.length : 0;
+                if (count > 0) {
+                    this.deleteAuditsCount = count;
+                    this.deleteBlocked = true;
+                }
+            } catch (e) {
+                console.error("Failed to check audits before delete:", e);
+            }
             this.confirmDialogDelete = true;
+        },
+        openMoveForItemToDelete() {
+            if (!this.itemToDelete) 
+                return;
+    
+            this.bulkMove = { from: this.itemToDelete.id, to: null };
+            this.bulkMoveDialog = true;
+            this.confirmDialogDelete = false;
         },
         confirmDefault(item) {
             this.itemToChange = item;
@@ -291,15 +313,21 @@ export default {
 	<v-dialog v-model="confirmDialogDelete" max-width="400">
 		<v-card>
 			<v-card-title class="text-h5">Confirm Deletion</v-card-title>
-			<v-card-text>
-				Are you sure you want to delete the location "{{ itemToDelete?.name }}"?
-				<br />
-				<span class="text-red">This action cannot be undone.</span>
-			</v-card-text>
+            <v-card-text>
+                Are you sure you want to delete the location "{{ itemToDelete?.name }}"?
+                <br />
+                <span v-if="!deleteBlocked" class="text-red">This action cannot be undone.</span>
+                <div v-if="deleteBlocked" class="mt-4">
+                    <v-alert type="warning" variant="tonal" density="compact">
+                        Cannot delete: this location has <strong>{{ deleteAuditsCount }}</strong> audits. Move them to another location before deleting.
+                    </v-alert>
+                </div>
+            </v-card-text>
 			<v-card-actions>
 				<v-spacer></v-spacer>
 				<v-btn color="grey" text @click="confirmDialogDelete = false">Cancel</v-btn>
-				<v-btn color="error" @click="removeLocation(itemToDelete)">Delete</v-btn>
+                <v-btn v-if="!deleteBlocked" color="error" @click="removeLocation(itemToDelete)">Delete</v-btn>
+                <v-btn v-else color="primary" @click="openMoveForItemToDelete">Move audits</v-btn>
 			</v-card-actions>
 		</v-card>
 	</v-dialog>
