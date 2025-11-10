@@ -117,6 +117,7 @@ export default class Ldap extends EventEmitter {
 				email: user.mail,
 				groups,
 				hasKey: user.haskey == "true",
+				telegramID: user.telegramID || null,
 			});
 		});
 		this.emit("usersUpdate", this.users);
