@@ -2,6 +2,7 @@ import * as v from "valibot";
 import dayjs from "../day.js";
 
 import { db } from "../index.js";
+import { user } from "./user.js";
 
 export const bookings = {
 	auth: "RO",
@@ -66,6 +67,7 @@ export const bookingsNew = {
 						v.transform(Math.round),
 					),
 				),
+				user: v.fallback(v.pipe(v.string(), v.trim(), v.nonEmpty()), req.session.user.id),
 				location: v.pipe(v.string(), v.trim(), v.nonEmpty()),
 			}),
 			v.check(input => {
@@ -76,7 +78,11 @@ export const bookingsNew = {
 			}, "The end time must be greater than the start time."),
 		),
 	async handler(req, res) {
-		if (req.session.isAdmin && !req.body.endTime) {
+		const user = await db.getUser(req.body.user);
+		if (!user) {
+			return res.status(404).json({ error: "User not found" });
+		}
+		if (user.isAdmin && !req.body.endTime) {
 			return res.status(400).json({ error: "Admins must provide end time" });
 		}
 		//Converts from milliseconds
@@ -91,10 +97,9 @@ export const bookingsNew = {
 			return res.status(400).json({ error: "Location is required" });
 		}
 
-
 		if (!req.body.endTime) endTime = null;
 		//Database want seconds
-		let booking = await db.addBooking(req.session.user.id, startTime.unix(), endTime.unix(), req.body.location);
+		let booking = await db.addBooking(user, startTime.unix(), endTime.unix(), req.body.location);
 		res.status(200).json(booking);
 	},
 };
@@ -140,6 +145,7 @@ export const bookingsIdEdit = {
 						v.transform(Math.round),
 					),
 				),
+				user: v.fallback(v.pipe(v.string(), v.trim(), v.nonEmpty()), req.session.user.id),
 			}),
 			v.check(input => {
 				if (input.endTime) {
@@ -156,12 +162,17 @@ export const bookingsIdEdit = {
 			return;
 		}
 
-		if (booking.userId != req.session.user.id) {
+		if (booking.userId != req.body.user.id) {
 			res.status(403).send({ error: "Not authorized" });
 			return;
 		}
+		const user = await db.getUser(req.body.user);
 
-		if (req.session.isAdmin && !req.body.endTime) {
+		if (!user) {
+			return res.status(404).json({ error: "User not found" });
+		}
+
+		if (user.isAdmin && !req.body.endTime) {
 			return res.status(400).json({ error: "Admins must provide end time" });
 		}
 
@@ -183,6 +194,7 @@ export const bookingsIdDelete = {
 	auth: "RW",
 	method: "DELETE",
 	route: "/bookings/:id",
+	body: () => v.object({user: v.fallback(v.pipe(v.string(), v.trim(), v.nonEmpty()), req.session.user.id)}),
 	async handler(req, res) {
 		let booking = await db.getBooking(req.params.id);
 
@@ -190,7 +202,12 @@ export const bookingsIdDelete = {
 			return res.status(404).json({ error: "Booking not found" });
 		}
 
-		if (booking.userId != req.session.user.id && !req.session.isAdmin) {
+		const user = await db.getUser(req.body.user);
+		if (!user) {
+			return res.status(404).json({ error: "User not found" });
+		}
+
+		if (booking.userId != req.body.user.id && !user.isAdmin) {
 			return res.status(403).json({ error: "Not authorized" });
 		}
 
