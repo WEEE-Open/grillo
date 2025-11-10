@@ -130,8 +130,7 @@ export class Database {
 	}
 
 	async getUserbyTelegramID(telegramID) {
-		this.getUsers();
-		let ldapUser = (await this.ldap.getUsers()).filter(user => user.telegramID === telegramID)[0];
+		let ldapUser = (await this.getUsers()).filter(user => user.telegramID === telegramID)[0];
 		if (ldapUser == null) {
 			return null;
 		}
@@ -158,6 +157,19 @@ export class Database {
 		let dbData = await this.db`
 			SELECT * FROM "user" WHERE id = ${userId};
 		`;
+
+		// If not found by UUID, try to find by uid/username in LDAP and get their UUID
+		if (dbData.length == 0) {
+			const ldapUsers = await this.ldap.getUsers();
+			const ldapMatch = ldapUsers.find(u => u.uid === userId || u.username === userId);
+			if (ldapMatch) {
+				// Retry with the UUID
+				dbData = await this.db`
+					SELECT * FROM "user" WHERE id = ${ldapMatch.id};
+				`;
+			}
+		}
+
 		if (dbData.length == 0) {
 			return null;
 		}
@@ -166,6 +178,7 @@ export class Database {
 		if (ldapData == null) {
 			return null;
 		}
+
 		return new User({
 			...ldapData,
 			...dbData,

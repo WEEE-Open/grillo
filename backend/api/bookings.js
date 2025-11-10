@@ -5,32 +5,31 @@ import { db } from "../index.js";
 
 export const bookings = {
 	auth: "RO",
-	route: "/bookings/:date",
+	route: "/bookings/",
 	async handler(req, res) {
-		
-		if (!req.session || !req.session.user || !req.session.user.id) {
-        return res.status(401).json({ error: "Not authenticated" });
-    }
-	    let userId = req.session.user.id;
-		
-		let unixDate = parseInt(req.params.date, 10);
+		if (!req.session && !req.session.api) {
+			return res.status(401).json({ error: "Not authenticated" });
+		}
+		let dateParam = req.query.date || null;
+		let unixDate = undefined;
+
+		if (!dateParam) unixDate = dayjs().unix();
+		else unixDate = parseInt(dateParam, 10);
+
 		if (String(unixDate).length === 10) unixDate *= 1000;
 		let date = dayjs(unixDate);
 		const startWeek = date.startOf("isoWeek").unix();
 		const endWeek = date.endOf("isoWeek").unix();
 
-		
 		let user = await db.getUser(userId);
 		if (!user) {
 			return res.status(404).json({ error: "User not found" });
 		}
-		console.log(user);
 		const isAdmin = user.groups.includes("soviet");
-		console.log(isAdmin)
-		
+
 		//adding name and if is an admin, for calendar visualization purpose
-		const result  = await db.getBookings(startWeek, endWeek, [userId]);
-		const bookings = result.map(b => ({ ...b, name: user.printableName, isAdmin: isAdmin}));
+		const result = await db.getBookings(startWeek, endWeek, [userId]);
+		const bookings = result.map(b => ({ ...b, name: user.printableName, isAdmin: isAdmin }));
 
 		res.json(bookings);
 	},
@@ -80,7 +79,7 @@ export const bookingsNew = {
 		if (req.session.isAdmin && !req.body.endTime) {
 			return res.status(400).json({ error: "Admins must provide end time" });
 		}
-        //Converts from milliseconds
+		//Converts from milliseconds
 		let startTime = dayjs(req.body.startTime);
 		let endTime = dayjs(req.body.endTime);
 
@@ -89,12 +88,12 @@ export const bookingsNew = {
 			return res.status(400).json({ error: "Invalid time" });
 		}
 		if (!req.body.location) {
-        	return res.status(400).json({ error: "Location is required" });
-    	}
-		
+			return res.status(400).json({ error: "Location is required" });
+		}
+
 
 		if (!req.body.endTime) endTime = null;
-        //Database want seconds
+		//Database want seconds
 		let booking = await db.addBooking(req.session.user.id, startTime.unix(), endTime.unix(), req.body.location);
 		res.status(200).json(booking);
 	},

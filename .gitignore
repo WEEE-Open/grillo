@@ -143,3 +143,5 @@ backend/DB/grillo.db
 
 #API file
 *.apit
+
+.direnv
