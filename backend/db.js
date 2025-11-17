@@ -137,6 +137,14 @@ export class Database {
 		return ldapUser;
 	}
 
+	async getUserbyUid(uid) {
+		let ldapUsers = await this.ldap.getUsers();
+		let ldapUser = ldapUsers.find(user => user.uid === uid || user.username === uid);
+		if (ldapUser == null) {
+			return null;
+		}
+		return this.getUser(ldapUser.id);
+	}
 
 	async getUsersInLocation(locationId) {
 		let dbData = await this.db`
