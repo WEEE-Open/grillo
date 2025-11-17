@@ -384,7 +384,7 @@ export class Database {
 		return (
 			(
 				await this.db`
-		SELECT id FROM audit
+		SELECT * FROM audit
 		WHERE "userId" = ${userId} AND "endTime" IS NULL
 		ORDER BY "startTime" DESC
 		LIMIT 1
@@ -432,7 +432,7 @@ export class Database {
 	async getAuditsByLocation(id){
 		return this.db`
 			SELECT *
-			FROM audit 
+			FROM audit
 			WHERE "location" = ${id}
 
 		`
