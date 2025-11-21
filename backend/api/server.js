@@ -19,23 +19,26 @@ export const config = {
 			defaultLocation: await db.getConfig("defaultLocation"),
 			servicesLinks: conf.servicesLinks,
 		});
-	}
-}
+	},
+};
 
 export const configEdit = {
-	auth: 'admin',
-	method: 'PATCH',
+	auth: "admin",
+	method: "PATCH",
 	route: "/config",
-	body: () => v.objectAsync({
-		defaultLocation: v.nullishAsync(v.pipeAsync(
-			v.string(),
-			v.trim(),
-			v.nonEmpty(),
-			v.checkAsync(async (location) => {
-				return !!(await db.getLocation(location));
-			})
-		)),
-	}),
+	body: () =>
+		v.objectAsync({
+			defaultLocation: v.nullishAsync(
+				v.pipeAsync(
+					v.string(),
+					v.trim(),
+					v.nonEmpty(),
+					v.checkAsync(async location => {
+						return !!(await db.getLocation(location));
+					}),
+				),
+			),
+		}),
 	async handler(req, res) {
 		if (!!req.body.defaultLocation) {
 			db.setConfig("defaultLocation", req.body.defaultLocation);
@@ -44,5 +47,5 @@ export const configEdit = {
 			defaultLocation: await db.getConfig("defaultLocation"),
 			servicesLinks: conf.servicesLinks,
 		});
-	}
-}
+	},
+};

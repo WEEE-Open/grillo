@@ -15,14 +15,15 @@ export const tokensNew = {
 	auth: "admin",
 	method: "POST",
 	route: "/tokens",
-	body: () => v.pipe(
-		v.object({
-			readOnly: v.fallback(v.boolean(), false),
-			admin: v.fallback(v.boolean(), false),
-			description: v.pipe(v.string(), v.trim(), v.nonEmpty()),
-		}),
-		v.check(input => !(input.readOnly && input.admin)),
-	),
+	body: () =>
+		v.pipe(
+			v.object({
+				readOnly: v.fallback(v.boolean(), false),
+				admin: v.fallback(v.boolean(), false),
+				description: v.pipe(v.string(), v.trim(), v.nonEmpty()),
+			}),
+			v.check(input => !(input.readOnly && input.admin)),
+		),
 	async handler(req, res) {
 		let result = await db.generateApiToken(req.body.readOnly, req.body.admin, req.body.description);
 		res.json(result);

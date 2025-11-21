@@ -20,7 +20,6 @@ export const audits = {
 	},
 };
 
-
 export const auditsId = {
 	auth: "RO",
 	route: "/audits/:id",
@@ -42,8 +41,8 @@ export const auditsLocation = {
 			return res.status(404).json("Audit not found");
 		}
 		res.json(audits);
-	}
-}
+	},
+};
 
 export const auditsNew = {
 	auth: "RW",
@@ -56,21 +55,20 @@ export const auditsNew = {
 				user: v.fallback(v.pipe(v.string(), v.trim(), v.nonEmpty()), req.session.user?.id),
 				location: v.nullish(v.pipe(v.string(), v.trim(), v.nonEmpty())),
 				approved: v.nullish(v.boolean()),
-				startTime:
-					v.pipe(
-						v.fallback(
-							v.union([
-								v.pipe(
-									v.string(),
-									v.transform(Number.parseInt),
-									v.check(v => !Number.isNaN(v)),
-								),
-								v.number(),
-							]),
-							Math.floor(Date.now() / 1000),
-						),
-						v.transform(Math.round),
+				startTime: v.pipe(
+					v.fallback(
+						v.union([
+							v.pipe(
+								v.string(),
+								v.transform(Number.parseInt),
+								v.check(v => !Number.isNaN(v)),
+							),
+							v.number(),
+						]),
+						Math.floor(Date.now() / 1000),
 					),
+					v.transform(Math.round),
+				),
 				previousSummary: v.nullish(v.pipe(v.string(), v.trim(), v.nonEmpty())),
 			}),
 			v.pipe(
@@ -187,21 +185,20 @@ export const auditsPatch = {
 			user: v.fallback(v.pipe(v.string(), v.trim(), v.nonEmpty()), req.session.user?.id),
 			approved: v.nullish(v.boolean()),
 			summary: v.pipe(v.string(), v.trim(), v.nonEmpty()),
-			endTime:
-				v.pipe(
-					v.fallback(
-						v.union([
-							v.pipe(
-								v.string(),
-								v.transform(Number.parseInt),
-								v.check(v => !Number.isNaN(v)),
-							),
-							v.number(),
-						]),
-						Math.floor(Date.now() / 1000),
-					),
-					v.transform(Math.round),
+			endTime: v.pipe(
+				v.fallback(
+					v.union([
+						v.pipe(
+							v.string(),
+							v.transform(Number.parseInt),
+							v.check(v => !Number.isNaN(v)),
+						),
+						v.number(),
+					]),
+					Math.floor(Date.now() / 1000),
 				),
+				v.transform(Math.round),
+			),
 		}),
 	async handler(req, res) {
 		if (!req.session.isAdmin) {
@@ -211,7 +208,9 @@ export const auditsPatch = {
 			}
 		} else {
 			if (req.body.approved === undefined) {
-				return res.status(400).json({ error: "Admin must always explicitly provide a value for approved" });
+				return res
+					.status(400)
+					.json({ error: "Admin must always explicitly provide a value for approved" });
 			}
 		}
 
@@ -342,7 +341,6 @@ export const auditsPatchLocation = {
 	route: "/audits/location/:id",
 	body: () =>
 		v.object({
-
 			fromId: v.pipe(
 				v.string(),
 				v.trim(),
@@ -361,14 +359,13 @@ export const auditsPatchLocation = {
 
 		// Load audits to move
 		const fromLocationId = req.body.fromId;
-		console.log("Eccomi")
-		console.log(fromLocationId)
+		console.log("Eccomi");
+		console.log(fromLocationId);
 		const fromLocation = await db.getLocation(fromLocationId);
 		if (!fromLocation) {
 			return res.status(404).json({ error: "Source location not found" });
 		}
 		const audits = await db.getAuditsByLocation(fromLocationId);
-
 
 		// Permission checks for non-admins
 		if (!req.session.isAdmin) {
@@ -381,16 +378,19 @@ export const auditsPatchLocation = {
 
 		//apply change
 		const edited = await Promise.all(
-			audits.map(async a => (
-				await db.editAudit(
-					a.id,
-					a.startTime,
-					a.endTime,
-					a.summary,
-					a.approved,
-					targetLocation.id,
-				)
-			)[0]),
+			audits.map(
+				async a =>
+					(
+						await db.editAudit(
+							a.id,
+							a.startTime,
+							a.endTime,
+							a.summary,
+							a.approved,
+							targetLocation.id,
+						)
+					)[0],
+			),
 		);
 
 		res.json(edited);

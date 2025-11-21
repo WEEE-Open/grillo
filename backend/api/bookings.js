@@ -2,7 +2,7 @@ import * as v from "valibot";
 import dayjs from "../day.js";
 
 import { db } from "../index.js";
-import { user } from "./user.js";
+import { user, userList } from "./user.js";
 
 export const bookings = {
 	auth: "RO",
@@ -22,15 +22,37 @@ export const bookings = {
 		const startWeek = date.startOf("isoWeek").unix();
 		const endWeek = date.endOf("isoWeek").unix();
 
-		let user = await db.getUser(userId);
-		if (!user) {
-			return res.status(404).json({ error: "User not found" });
-		}
-		const isAdmin = user.groups.includes("soviet");
+		let users = [];
+		let validFilter = false;
 
-		//adding name and if is an admin, for calendar visualization purpose
-		const result = await db.getBookings(startWeek, endWeek, [userId]);
-		const bookings = result.map(b => ({ ...b, name: user.printableName, isAdmin: isAdmin }));
+		if (req.query.users) {
+			let usersList = req.query.users.split(',');
+			for (let userId of usersList) {
+				let user = await db.getUser(userId);
+				if (user) {
+					users.push(user.id);
+					validFilter = true;
+				} else {
+					return res.status(400).json({ error: "User in users list not valid" });
+				}
+			}
+		}
+
+		// TODO: requires implementing groups fetching in db class
+		/*if (req.query.groups) {
+			let groupsList = req.query.users.split(',');
+			for (let groupId of groupsList) {
+				let group = await db.getGroup(groupId);
+				if (group) {
+					db.getUsersByGroup(groupId);
+					validFilter = true;
+				} else {
+					return res.status(400).json({ error: "Group in groups list not valid" });
+				}
+			}
+		}*/
+
+		const bookings = await db.getBookings(startWeek, endWeek, validFilter ? users : null);
 
 		res.json(bookings);
 	},
@@ -40,7 +62,7 @@ export const bookingsNew = {
 	auth: "RW",
 	method: "POST",
 	route: "/bookings",
-	body: () =>
+	body: ({ req }) =>
 		v.pipe(
 			v.object({
 				startTime: v.pipe(
@@ -89,7 +111,6 @@ export const bookingsNew = {
 		let startTime = dayjs(req.body.startTime);
 		let endTime = dayjs(req.body.endTime);
 
-
 		if (startTime.isBefore(dayjs())) {
 			return res.status(400).json({ error: "Invalid time" });
 		}
@@ -99,7 +120,7 @@ export const bookingsNew = {
 
 		if (!req.body.endTime) endTime = null;
 		//Database want seconds
-		let booking = await db.addBooking(user, startTime.unix(), endTime.unix(), req.body.location);
+		let booking = await db.addBooking(user.id, startTime.unix(), endTime.unix(), req.body.location);
 		res.status(200).json(booking);
 	},
 };
@@ -118,7 +139,7 @@ export const bookingsIdEdit = {
 	auth: "RW",
 	method: "POST",
 	route: "/bookings/:id",
-	body: () =>
+	body: ({ req }) =>
 		v.pipe(
 			v.object({
 				startTime: v.pipe(
@@ -194,7 +215,10 @@ export const bookingsIdDelete = {
 	auth: "RW",
 	method: "DELETE",
 	route: "/bookings/:id",
-	body: () => v.object({user: v.fallback(v.pipe(v.string(), v.trim(), v.nonEmpty()), req.session.user.id)}),
+	body: ({ req }) =>
+		v.object({
+			user: v.fallback(v.pipe(v.string(), v.trim(), v.nonEmpty()), req.session.user.id),
+		}),
 	async handler(req, res) {
 		let booking = await db.getBooking(req.params.id);
 

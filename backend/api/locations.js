@@ -82,14 +82,14 @@ export const locationsIdEdit = {
 			return res.status(404).json({ error: "Location not found" });
 		}
 
-		//check if used somewhere 
+		//check if used somewhere
 		let bookingsCount = await db.countBookingsInLocation(req.params.id);
 
 		if (bookingsCount > 0) {
-            return res.status(409).json({
-                error: "Cannot change location with existing references",
-            });
-        }
+			return res.status(409).json({
+				error: "Cannot change location with existing references",
+			});
+		}
 
 		let editedLocation = await db.editLocation(req.params.id, req.body.name);
 		res.json(editedLocation);
@@ -106,14 +106,14 @@ export const locationIdDelete = {
 			return res.status(404).json({ error: "Location not found" });
 		}
 
-		//check if used somewhere 
+		//check if used somewhere
 		let bookingsCount = await db.countBookingsInLocation(req.params.id);
 
 		if (bookingsCount > 0) {
-            return res.status(409).json({
-                error: "Cannot change location with existing references",
-            });
-        }
+			return res.status(409).json({
+				error: "Cannot change location with existing references",
+			});
+		}
 
 		await db.deleteLocation(req.params.id);
 		res.sendStatus(204);

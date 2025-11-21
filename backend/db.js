@@ -62,14 +62,28 @@ export class Database {
 	 * @returns
 	 */
 	async getBookings(startWeek, endWeek, users, location) {
- 		const result = await this.db`
-			SELECT "userId", "startTime", "endTime"
+		const result = await this.db`
+			SELECT "userId", "startTime", "endTime", "location"
 			FROM booking
 			WHERE "startTime" >= ${startWeek}
 			AND ("endTime" <= ${endWeek} OR "endTime" IS NULL)
 			${users && users.length > 0 ? this.db`AND "userId" IN ${this.db(users)}` : this.db``}
 			${location ? this.db`AND location = ${location}` : this.db``};`;
-		return result;
+		const uniqueUsers = await Promise.all(
+			result
+			.map(b => b.userId)
+			.filter((v, i, a) => a.indexOf(v) === i)
+			.map(uId => this.getUser(uId))
+		);
+		const usersMap = Object.fromEntries(uniqueUsers.map(u => [u.id, u]));
+		return result.map(b => {
+			return {
+				startTime: b.startTime,
+				endTime: b.endTime,
+				location: b.location,
+				user: usersMap[b.userId],
+			};
+		});
 	}
 
 	async getBooking(id) {
@@ -353,14 +367,14 @@ export class Database {
 	//Check if there is violation in foreing key
 	/*****/
 
-    async countBookingsInLocation(id) {
-        const res = await this.db`
+	async countBookingsInLocation(id) {
+		const res = await this.db`
             SELECT COUNT(*) AS count
             FROM "booking"
             WHERE "location" = ${id};
         `;
-        return res[0].count;
-    }
+		return res[0].count;
+	}
 
 	// #endregion
 
@@ -437,13 +451,13 @@ export class Database {
 			)[0] ?? null
 		);
 	}
-	async getAuditsByLocation(id){
+	async getAuditsByLocation(id) {
 		return this.db`
 			SELECT *
 			FROM audit
 			WHERE "location" = ${id}
 
-		`
+		`;
 	}
 
 	async editAudit(id, startTime, endTime, summary, approved, location) {
@@ -498,9 +512,9 @@ export class Database {
 				sql += " AND date(A2.time) <= ?";
 				param.push(endTime);
 			}
-			sql += " GROUP BY A1.\"userId\"";
+			sql += ' GROUP BY A1."userId"';
 			if (user != null) {
-				sql += " HAVING A1.\"userId\" = ?";
+				sql += ' HAVING A1."userId" = ?';
 				param.push(user);
 			}
 			this.db.all(sql, param, (err, rows) => {

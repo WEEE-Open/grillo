@@ -1,5 +1,5 @@
 <script>
-import { VCalendar } from 'vuetify/labs/VCalendar'
+import { VCalendar } from "vuetify/labs/VCalendar";
 import { useServer } from "../stores/server";
 import { mapActions } from "pinia";
 
@@ -14,45 +14,46 @@ export default {
 		const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
 		const monday = new Date(today);
 		monday.setDate(today.getDate() - daysToSubtract);
-		
+
 		return {
 			events: [],
 			dialog: false,
 			loading: false,
 			locations: [],
-			focus: [monday], 
+			focus: [monday],
 			bookingForm: {
 				startTime: "",
 				endTime: "",
-				location: "" 
+				location: "",
 			},
-			endTimeTouched: false, 
+			endTimeTouched: false,
 			// event details menu state
 			selectedEvent: {},
 			selectedElement: null,
 			selectedOpen: false,
-		}
+		};
 	},
-	mounted (){
+	mounted() {
 		this.fetchBookings(new Date());
 		this.fetchEvents();
-		this.fetchLocations(); 
+		this.fetchLocations();
 	},
 	computed: {
 		bookingDateStartRules() {
 			if (!this.bookingForm.startTime) return ["Start time is required"];
 			if (new Date(this.bookingForm.startTime) <= new Date()) {
-				return ["Start time cannot be in the past!"]};
+				return ["Start time cannot be in the past!"];
+			}
 
 			return [];
 		},
 
-				bookingLocationRules() {
-								if (!this.bookingForm.location) return ["Location is required"]; 
-return [];},
+		bookingLocationRules() {
+			if (!this.bookingForm.location) return ["Location is required"];
+			return [];
+		},
 
-
-		bookingDateEndRules(){
+		bookingDateEndRules() {
 			if (!this.bookingForm.endTime) return ["End time is required"];
 			if (new Date(this.bookingForm.startTime) >= new Date(this.bookingForm.endTime)) {
 				return ["End time must be after start time"];
@@ -60,9 +61,12 @@ return [];},
 			return [];
 		},
 
-
 		isBookingFormValid() {
-			return this.bookingDateStartRules.length === 0 && this.bookingDateEndRules.length === 0 && this.bookingLocationRules.length === 0;
+			return (
+				this.bookingDateStartRules.length === 0 &&
+				this.bookingDateEndRules.length === 0 &&
+				this.bookingLocationRules.length === 0
+			);
 		},
 		currentUser() {
 			const serverStore = useServer();
@@ -70,7 +74,7 @@ return [];},
 		},
 		isUserLoggedIn() {
 			return this.currentUser && this.currentUser.id;
-		}
+		},
 	},
 	watch: {
 		focus: {
@@ -78,46 +82,49 @@ return [];},
 				if (Array.isArray(newFocus) && newFocus.length > 0 && newFocus !== oldFocus) {
 					this.fetchBookings(newFocus[0]);
 				}
-			}
-		}
+			},
+		},
 	},
 	methods: {
-		...mapActions(useServer, ["getBookings", "createBooking", "getLocations", "getEvents"]), 
-		
+		...mapActions(useServer, ["getBookings", "createBooking", "getLocations", "getEvents"]),
+
 		handleFocusUpdate(newFocusDate) {
-			console.log('Focus update called with:', newFocusDate);
+			console.log("Focus update called with:", newFocusDate);
 			this.focus = Array.isArray(newFocusDate) ? newFocusDate : [newFocusDate];
 		},
 
 		showEvent(payload) {
-			
 			try {
 				const { event, nativeEvent } = payload || {};
 				this.selectedEvent = event || {};
 
-				this.selectedElement = (payload && payload.element) || (nativeEvent && nativeEvent.currentTarget) || (nativeEvent && nativeEvent.target) || null;
+				this.selectedElement =
+					(payload && payload.element) ||
+					(nativeEvent && nativeEvent.currentTarget) ||
+					(nativeEvent && nativeEvent.target) ||
+					null;
 
 				requestAnimationFrame(() => {
 					this.selectedOpen = true;
 				});
 			} catch (e) {
-				console.warn('Failed to open event details menu:', e);
+				console.warn("Failed to open event details menu:", e);
 			}
 		},
 
 		async fetchLocations() {
 			try {
-				this.locations =  await this.getLocations();
+				this.locations = await this.getLocations();
 				if (this.locations.length > 0) {
 					this.bookingForm.location = this.locations[0].id;
 				}
-			} catch(error) {
+			} catch (error) {
 				console.log("Locations fetch failed: ", error);
 			}
 		},
 
 		async onCalendarChange(eventData) {
-			console.log('Calendar change event:', eventData);
+			console.log("Calendar change event:", eventData);
 			const startDate = eventData.start || eventData || new Date();
 			await this.fetchBookings(startDate);
 			await this.fetchEvents();
@@ -125,75 +132,67 @@ return [];},
 
 		async fetchBookings(startOfWeek) {
 			try {
-				
 				const unixStart = Math.floor(startOfWeek.getTime() / 1000);
 				const dbBookings = await this.getBookings(unixStart);
 
 				for (const dbBooking of dbBookings) {
 					const startDate = new Date(dbBooking.startTime * 1000);
-					const endDate = dbBooking.endTime
-						? new Date(dbBooking.endTime * 1000)
-						: null;
+					const endDate = dbBooking.endTime ? new Date(dbBooking.endTime * 1000) : null;
 					this.events.push({
-						title: `${dbBooking.name}`,
+						title: `${dbBooking.user.name}`,
 						start: startDate,
 						end: endDate,
-						color: 'green',
+						color: "green",
 						allDay: false,
 					});
 				}
 			} catch (error) {
-				console.log('Booking fetch failed: ', error);
+				console.log("Booking fetch failed: ", error);
 			}
 		},
-		async fetchEvents(){
-            try {
-                const dbEvents = await this.getEvents();
+		async fetchEvents() {
+			try {
+				const dbEvents = await this.getEvents();
 				for (const dbEvent of dbEvents) {
 					const startDate = new Date(dbEvent.startTime * 1000);
-					const endDate = dbEvent.endTime
-						? new Date(dbEvent.endTime * 1000)
-						: null;
+					const endDate = dbEvent.endTime ? new Date(dbEvent.endTime * 1000) : null;
 					this.events.push({
 						title: `${dbEvent.title}`,
 						start: startDate,
 						end: endDate,
-						color: 'red',
+						color: "red",
 						allDay: false,
 					});
 				}
+			} catch (error) {
+				console.log("Events fetch failed: ", error);
+			}
+		},
 
-            } 
-            catch(error){
-                console.log("Events fetch failed: ", error);
-            }
-        },
-
-		async addBooking(){
+		async addBooking() {
 			try {
 				const serverStore = useServer();
 				const userId = serverStore.session.user.id;
-				
+
 				if (!userId) {
 					throw new Error("User not logged in - please login first");
 				}
 
 				const bData = {
-					startTime: this.bookingForm.startTime,  
+					startTime: this.bookingForm.startTime,
 					endTime: this.bookingForm.endTime,
-					location: this.bookingForm.location, 
-					userId: userId                         
+					location: this.bookingForm.location,
+					userId: userId,
 				};
 
 				console.log("Sending booking data:", bData);
 				console.log("User session:", serverStore.session);
-				
+
 				await this.createBooking(bData);
 				this.dialog = false;
 				this.resetForm();
-				await this.fetchBookings(new Date()); 
-			}
-			catch(error){
+				await this.fetchBookings(new Date());
+			} catch (error) {
 				console.log("Booking add failed: ", error);
 				alert(`Failed to create booking: ${error.message}`);
 			}
@@ -207,7 +206,7 @@ return [];},
 		//autofill
 		onStartTimeUpdate(val) {
 			if (!this.endTimeTouched) {
-				this.bookingForm.endTime = val
+				this.bookingForm.endTime = val;
 			}
 		},
 		onEndTimeUpdate() {
@@ -218,10 +217,10 @@ return [];},
 			this.bookingForm = {
 				startTime: "",
 				endTime: "",
-				location: this.locations.length > 0 ? this.locations[0].id : "" 
+				location: this.locations.length > 0 ? this.locations[0].id : "",
 			};
-			this.endTimeTouched = false; 
-		}
+			this.endTimeTouched = false;
+		},
 	},
 };
 </script>
@@ -229,17 +228,16 @@ return [];},
 <template>
 	<v-main class="position-relative">
 		<v-sheet>
-			<VCalendar 
+			<VCalendar
 				ref="calendar"
-				:events="events" 
-				view-mode="week" 
-				:weekdays="[0, 1, 2, 3, 4, 5, 6]" 
-				:interval-duration="2*60"
+				:events="events"
+				view-mode="week"
+				:weekdays="[0, 1, 2, 3, 4, 5, 6]"
+				:interval-duration="2 * 60"
 				:model-value="focus"
 				@update:model-value="handleFocusUpdate"
 				@click:event="openAddEventDialog"
 			/>
-
 		</v-sheet>
 
 		<v-btn
@@ -309,14 +307,12 @@ return [];},
 				</v-card-text>
 
 				<v-card-actions>
-					<v-btn variant="text" @click="dialog = false">
-						Cancel
-					</v-btn>
+					<v-btn variant="text" @click="dialog = false"> Cancel </v-btn>
 					<v-spacer></v-spacer>
-					<v-btn 
-						color="green" 
+					<v-btn
+						color="green"
 						variant="elevated"
-						@click="addBooking" 
+						@click="addBooking"
 						:disabled="!isBookingFormValid || !isUserLoggedIn"
 						prepend-icon="mdi-check"
 					>
