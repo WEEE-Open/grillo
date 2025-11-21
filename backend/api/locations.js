@@ -30,8 +30,8 @@ export const locationsId = {
 		let people = await db.getUsersInLocation(location.id);
 
 		let date = dayjs();
-		startWeek = date.startOf("isoWeek").unix();
-		endWeek = date.endOf("isoWeek").unix();
+		let startWeek = date.startOf("isoWeek").unix();
+		let endWeek = date.endOf("isoWeek").unix();
 		const bookings = await db.getBookings(startWeek, endWeek, null, req.params.id);
 
 		res.json({
@@ -82,6 +82,15 @@ export const locationsIdEdit = {
 			return res.status(404).json({ error: "Location not found" });
 		}
 
+		//check if used somewhere
+		let bookingsCount = await db.countBookingsInLocation(req.params.id);
+
+		if (bookingsCount > 0) {
+			return res.status(409).json({
+				error: "Cannot change location with existing references",
+			});
+		}
+
 		let editedLocation = await db.editLocation(req.params.id, req.body.name);
 		res.json(editedLocation);
 	},
@@ -95,6 +104,15 @@ export const locationIdDelete = {
 		let location = await db.getLocation(req.params.id);
 		if (!location) {
 			return res.status(404).json({ error: "Location not found" });
+		}
+
+		//check if used somewhere
+		let bookingsCount = await db.countBookingsInLocation(req.params.id);
+
+		if (bookingsCount > 0) {
+			return res.status(409).json({
+				error: "Cannot change location with existing references",
+			});
 		}
 
 		await db.deleteLocation(req.params.id);

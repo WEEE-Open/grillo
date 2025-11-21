@@ -25,5 +25,8 @@ CMD ln /usr/src/app/backend/config.dev.js /usr/src/app/backend/config.js
 EXPOSE 3000
 EXPOSE 5173
 
+# https://github.com/vuejs/devtools/issues/977
+ENV NODE_OPTIONS='--no-webstorage'
+
 # Run the server
 CMD /usr/src/app/docker/server/entry.dev.sh

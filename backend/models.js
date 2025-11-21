@@ -10,6 +10,7 @@ export class User {
 		this.activeLocation = opt.activeLocation;
 		this.hasKey = opt.hasKey;
 		this.groups = opt.groups;
+		this.telegramID = opt.telegramID;
 	}
 
 	get isAdmin() {

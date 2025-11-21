@@ -7,7 +7,30 @@ export const user = {
 	auth: "RO",
 	route: "/user",
 	async handler(req, res) {
+		const telegramID = req.query.telegram_id || req.query.telegramID || null;
+		const uid = req.query.uid || null;
+
+		if (telegramID) {
+			const user = await db.getUserbyTelegramID(telegramID);
+			if (!user) return res.status(404).json({ error: "User not found" });
+			return res.json(user);
+		}
+		if (uid) {
+			const user = await db.getUserByUid(uid);
+			if (!user) return res.status(404).json({ error: "User not found" });
+			return res.json(user);
+		}
+
 		res.json(req.session);
+	},
+};
+
+export const userList = {
+	auth: "RO",
+	route: "/users",
+	async handler(req, res) {
+		let users = await db.getUsers();
+		res.json(users);
 	},
 };
 

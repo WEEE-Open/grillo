@@ -139,3 +139,9 @@ dist
 .yarn/install-state.gz
 .pnp.*
 backend/DB/grillo.db
+
+
+#API file
+*.apit
+
+.direnv

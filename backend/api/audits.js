@@ -32,6 +32,18 @@ export const auditsId = {
 	},
 };
 
+export const auditsLocation = {
+	auth: "RO",
+	route: "/audits/location/:id",
+	async handler(req, res) {
+		let audits = await db.getAuditsByLocation(req.params.id);
+		if (!audits) {
+			return res.status(404).json("Audit not found");
+		}
+		res.json(audits);
+	},
+};
+
 export const auditsNew = {
 	auth: "RW",
 	method: "POST",
@@ -40,11 +52,11 @@ export const auditsNew = {
 		v.variant("login", [
 			v.object({
 				login: v.literal(true),
-				user: v.fallback(v.pipe(v.string(), v.trim(), v.nonEmpty()), req.session.user.id),
+				user: v.fallback(v.pipe(v.string(), v.trim(), v.nonEmpty()), req.session.user?.id),
 				location: v.nullish(v.pipe(v.string(), v.trim(), v.nonEmpty())),
 				approved: v.nullish(v.boolean()),
-				startTime: v.nullish(
-					v.pipe(
+				startTime: v.pipe(
+					v.fallback(
 						v.union([
 							v.pipe(
 								v.string(),
@@ -53,15 +65,16 @@ export const auditsNew = {
 							),
 							v.number(),
 						]),
-						v.transform(Math.round),
+						Math.floor(Date.now() / 1000),
 					),
+					v.transform(Math.round),
 				),
 				previousSummary: v.nullish(v.pipe(v.string(), v.trim(), v.nonEmpty())),
 			}),
 			v.pipe(
 				v.object({
 					login: v.nullish(v.literal(false)),
-					user: v.fallback(v.pipe(v.string(), v.trim(), v.nonEmpty()), req.session.user.id),
+					user: v.fallback(v.pipe(v.string(), v.trim(), v.nonEmpty()), req.session.user?.id),
 					location: v.nullish(v.pipe(v.string(), v.trim(), v.nonEmpty())),
 					approved: v.nullish(v.boolean()),
 					summary: v.pipe(v.string(), v.trim(), v.nonEmpty()),
@@ -106,14 +119,14 @@ export const auditsNew = {
 
 		if (!req.body.location) req.body.location = await db.getConfig("defaultLocation");
 
-		let location = db.getLocation(req.body.location);
+		let location = await db.getLocation(req.body.location);
 
 		if (!location) {
 			return res.status(404).json({ error: "Location not found" });
 		}
 
 		if (req.body.login) {
-			const activeAudit = await db.getActiveAudit(req.body.userId);
+			const activeAudit = await db.getActiveAudit(req.body.user);
 
 			let oldAudit;
 			if (activeAudit) {
@@ -166,14 +179,14 @@ export const auditsPatch = {
 	auth: "RW",
 	method: "PATCH",
 	route: "/audits",
-	body: () =>
+	body: ({ req }) =>
 		v.object({
 			logout: v.literal(true),
-			user: v.nullish(v.pipe(v.string(), v.trim(), v.nonEmpty())),
+			user: v.fallback(v.pipe(v.string(), v.trim(), v.nonEmpty()), req.session.user?.id),
 			approved: v.nullish(v.boolean()),
 			summary: v.pipe(v.string(), v.trim(), v.nonEmpty()),
-			endTime: v.nullish(
-				v.pipe(
+			endTime: v.pipe(
+				v.fallback(
 					v.union([
 						v.pipe(
 							v.string(),
@@ -182,27 +195,34 @@ export const auditsPatch = {
 						),
 						v.number(),
 					]),
-					v.transform(Math.round),
+					Math.floor(Date.now() / 1000),
 				),
+				v.transform(Math.round),
 			),
 		}),
 	async handler(req, res) {
 		if (!req.session.isAdmin) {
 			req.body.approved = false;
-			if (req.body.user && req.body.user != req.session.user.id) {
-				return res.status(403).json({ error: "Can't add audit for another user" });
+			if (req.body.user != req.session.user.id) {
+				return res.status(403).json({ error: "Can't edit audit for another user" });
+			}
+		} else {
+			if (req.body.approved === undefined) {
+				return res
+					.status(400)
+					.json({ error: "Admin must always explicitly provide a value for approved" });
 			}
 		}
 
-		if (!req.body.endTime) req.body.endTime = Math.floor(Date.now() / 1000);
-
-		const activeAudit = await db.getActiveAudit(req.body.userId);
-
-		if (activeAudit.startTime < req.body.endTime) {
+		const activeAudit = await db.getActiveAudit(req.body.user);
+		if (!activeAudit) {
+			return res.status(400).json({ error: "No active audit found for user" });
+		}
+		if (activeAudit.startTime >= req.body.endTime) {
 			return res.status(400).json({ error: "The end time must be greater than the start time" });
 		}
 
-		let editedAudit = db.editAudit(
+		const editedAudit = await db.editAudit(
 			activeAudit.id,
 			activeAudit.startTime,
 			req.body.endTime,
@@ -210,8 +230,7 @@ export const auditsPatch = {
 			req.body.approved,
 			activeAudit.location,
 		);
-
-		res.json(editAudit);
+		res.json(editedAudit);
 	},
 };
 
@@ -282,7 +301,7 @@ export const auditsIdPatch = {
 			return res.status(403).json({ error: "Can't add audit for another user" });
 		}
 
-		const editedAudit = db.editAudit(
+		const editedAudit = await db.editAudit(
 			req.params.id,
 			req.body.startTime,
 			req.body.endTime,
@@ -290,7 +309,7 @@ export const auditsIdPatch = {
 			req.body.approved,
 			req.body.location,
 		);
-		res.json(editAudit);
+		res.json(editedAudit);
 	},
 };
 
@@ -313,5 +332,67 @@ export const auditsIdDelete = {
 
 		await db.deleteAudit(req.params.id);
 		res.status(204).send();
+	},
+};
+
+export const auditsPatchLocation = {
+	auth: "RW",
+	method: "PATCH",
+	route: "/audits/location/:id",
+	body: () =>
+		v.object({
+			fromId: v.pipe(
+				v.string(),
+				v.trim(),
+				v.nonEmpty(),
+				v.notValue("default"),
+				v.regex(/^[a-zA-Z0-9-]+$/),
+			),
+		}),
+	async handler(req, res) {
+		// Resolve target location
+		let targetLocationId = req.params.id;
+		const targetLocation = await db.getLocation(targetLocationId);
+		if (!targetLocation) {
+			return res.status(404).json({ error: "Location not found" });
+		}
+
+		// Load audits to move
+		const fromLocationId = req.body.fromId;
+		console.log("Eccomi");
+		console.log(fromLocationId);
+		const fromLocation = await db.getLocation(fromLocationId);
+		if (!fromLocation) {
+			return res.status(404).json({ error: "Source location not found" });
+		}
+		const audits = await db.getAuditsByLocation(fromLocationId);
+
+		// Permission checks for non-admins
+		if (!req.session.isAdmin) {
+			for (const a of audits) {
+				if (a.userId != req.session.user.id || a.approved) {
+					return res.status(403).json({ error: "Not authorized" });
+				}
+			}
+		}
+
+		//apply change
+		const edited = await Promise.all(
+			audits.map(
+				async a =>
+					(
+						await db.editAudit(
+							a.id,
+							a.startTime,
+							a.endTime,
+							a.summary,
+							a.approved,
+							targetLocation.id,
+						)
+					)[0],
+			),
+		);
+
+		res.json(edited);
 	},
 };

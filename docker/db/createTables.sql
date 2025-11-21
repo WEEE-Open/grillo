@@ -98,7 +98,7 @@ CREATE OR REPLACE FUNCTION update_user_seconds()
 RETURNS TRIGGER AS $$
 DECLARE
     total_seconds INTEGER;
-    active_location BOOLEAN;
+    active_location TEXT;
     user_id VARCHAR(255);
 BEGIN
     -- Use id from old if deleting
@@ -112,8 +112,13 @@ BEGIN
     FROM audit
     WHERE "userId" = user_id AND "endTime" IS NOT NULL AND "approved"=true;
 
-    -- Determine if the user is currently logged in a location
-    SELECT EXISTS (SELECT location FROM audit WHERE "userId" = NEW."userId" AND "endTime" IS NULL) INTO active_location;
+    -- Determine if the user is currently logged in a location, extract the location
+    SELECT "location"
+    INTO active_location
+    FROM audit
+    WHERE "userId" = NEW."userId"
+    AND "endTime" IS NULL
+    LIMIT 1;
 
     -- Update the seconds and activeLocation fields in the user table
     UPDATE "user"

@@ -29,6 +29,7 @@ export default class Ldap extends EventEmitter {
 					email: "eliot.alderson@ecorp.com",
 					groups: ["chat", "software", "soviet"],
 					hasKey: true,
+					telegramID: "123456789",
 				}),
 				new User({
 					id: "f7639634-fd4e-4953-a15b-cddd091ae7d2",
@@ -40,6 +41,7 @@ export default class Ldap extends EventEmitter {
 					email: "darlene.alderson@fsociety.com",
 					groups: ["chat", "software"],
 					hasKey: false,
+					telegramID: "987654321",
 				}),
 				new User({
 					id: "7691d893-4c17-4805-a8d9-8dfb484f7cfe",
@@ -51,6 +53,7 @@ export default class Ldap extends EventEmitter {
 					email: "tyrell.wellick",
 					groups: ["chat", "repairer"],
 					hasKey: false,
+					telegramID: "555666777",
 				}),
 			];
 			return;
@@ -89,6 +92,7 @@ export default class Ldap extends EventEmitter {
 				"memberof",
 				"haskey",
 				"mail",
+				"telegramID",
 			],
 		});
 		this.users = res.map(user => {
@@ -113,6 +117,7 @@ export default class Ldap extends EventEmitter {
 				email: user.mail,
 				groups,
 				hasKey: user.haskey == "true",
+				telegramID: user.telegramID || null,
 			});
 		});
 		this.emit("usersUpdate", this.users);

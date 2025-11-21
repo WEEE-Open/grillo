@@ -111,21 +111,7 @@ export const useServer = defineStore("server", {
 			}
 			//da finire
 		},
-		async getLocations() {
-			let [request, abort] = this.makeRequest("GET", "/locations");
-			let response = await request;
-			if (response.ok) {
-				return await response.json();
-			} else {
-				if (response.status === 401) {
-					throw new Error("Not authenticated");
-				} else if (response.status === 403) {
-					throw new Error("No permission");
-				} else {
-					throw new Error("Error occurred during locations load");
-				}
-			} //Da controllare tutti gli errori
-		},
+
 		async deleteToken(token) {
 			let [request, abort] = this.makeRequest("DELETE", `/tokens/${token.id}`);
 
@@ -169,6 +155,23 @@ export const useServer = defineStore("server", {
 				throw error;
 			}
 		},
+
+		async getLocations() {
+			let [request, abort] = this.makeRequest("GET", "/locations");
+			let response = await request;
+			if (response.ok) {
+				return await response.json();
+			} else {
+				if (response.status === 401) {
+					throw new Error("Not authenticated");
+				} else if (response.status === 403) {
+					throw new Error("No permission");
+				} else {
+					throw new Error("Error occurred during locations load");
+				}
+			} //Da controllare tutti gli errori
+		},
+
 		async createLocation(location) {
 			let [request, abort] = this.makeRequest("POST", "/locations", {
 				id: location.id,
@@ -224,6 +227,154 @@ export const useServer = defineStore("server", {
 					throw new Error("Error occurred during location deletion");
 				}
 			} //Da controllare tutti gli errori
+		},
+
+		/* BOOKINGS */
+		async getBookings(date) {
+			let [request, abort] = this.makeRequest("GET", `/bookings?date=${date}`);
+
+			let response = await request;
+			if (response.ok) {
+				return response.json();
+			} else {
+				throw new Error("Some error occured");
+			}
+		},
+
+		async createBooking(data) {
+			console.log("Sending booking data:", data);
+
+			const payload = {
+				startTime: new Date(data.startTime).getTime(), // milliseconds
+				endTime: new Date(data.endTime).getTime(),
+				location: data.location,
+			};
+
+			let [request, abort] = this.makeRequest("POST", "/bookings", payload);
+
+			let response = await request;
+
+			console.log("Response status:", response.status);
+
+			if (!response.ok) {
+				const errorText = await response.text();
+				console.log("Error response:", errorText);
+			}
+
+			return response;
+		},
+
+		/* EVENTS */
+
+		async getEvents() {
+			let [request, abort] = this.makeRequest("GET", `/events`);
+
+			let response = await request;
+			if (response.ok) {
+				return response.json();
+			} else {
+				throw new Error("Some error occured");
+			}
+		},
+
+		async createEvent(event) {
+			const payload = {
+				startTime: Math.floor(new Date(event.startTime).getTime() / 1000), //seconds
+				endTime: Math.floor(new Date(event.endTime).getTime() / 1000), //seconds
+				title: event.title,
+				description: event.description,
+			};
+			console.log("Questo è il payload: ", payload);
+
+			let [request, abort] = this.makeRequest("POST", "/events", payload);
+
+			let response = await request;
+
+			if (response.ok) {
+				return true;
+			} else {
+				if (response.status === 401) {
+					throw new Error("Not authenticated");
+				} else if (response.status === 403) {
+					throw new Error("No permission");
+				} else if (response.status === 400) {
+					throw new Error("Already exist");
+				} else {
+					throw new Error("Error occurred during event creation");
+				}
+			}
+		},
+		async editEvent(eventId, eventData) {
+			const payload = {
+				startTime: Math.floor(new Date(eventData.startTime).getTime() / 1000), //seconds
+				endTime: Math.floor(new Date(eventData.endTime).getTime() / 1000),
+				title: eventData.title,
+				description: eventData.description,
+			};
+
+			let [request, abort] = this.makeRequest("POST", `/events/${eventId}`, payload);
+
+			let response = await request;
+
+			if (response.ok) {
+				return true;
+			} else {
+				if (response.status === 401) {
+					throw new Error("Not authenticated");
+				} else if (response.status === 403) {
+					throw new Error("No permission");
+				} else if (response.status === 404) {
+					throw new Error("Event not found");
+				} else {
+					throw new Error("Error occurred during event editing");
+				}
+			}
+		},
+		async deleteEvent(eventId) {
+			let [request, abort] = this.makeRequest("DELETE", `/events/${eventId}`);
+
+			let response = await request;
+
+			if (response.ok) {
+				return true;
+			} else {
+				if (response.status === 401) {
+					throw new Error("Not authenticated");
+				} else if (response.status === 403) {
+					throw new Error("No permission");
+				} else if (response.status === 404) {
+					throw new Error("Event not found");
+				} else {
+					throw new Error("Error occurred during event deletion");
+				}
+			}
+		},
+
+		//AUDITS
+		async getAuditsByLocation(locationId) {
+			let [request, abort] = this.makeRequest("GET", `/audits/location/${locationId}`);
+
+			let response = await request;
+			if (response.ok) {
+				return response.json();
+			} else {
+				throw new Error("Some error occured");
+			}
+		},
+
+		async bulkMoveAudits(fromId, toId) {
+			let payload = {
+				fromId: fromId,
+			};
+
+			let [request, abort] = this.makeRequest("PATCH", `/audits/location/${toId}`, payload);
+
+			let response = await request;
+			if (response.ok) {
+				return true;
+			} else {
+				throw new Error("Some error occured");
+			}
 		},
 	},
 });

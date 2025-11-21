@@ -11,12 +11,20 @@ export default {
 			locations: [],
 			loading: false,
 			dialog: false,
+			bulkMoveDialog: false,
 			isEditing: false,
 			idModified: false, //stop id prediction
 			confirmDialogDelete: false,
 			confirmDialogDefault: false,
 			itemToDelete: null, // for confirmation dialog
+			deleteAuditsCount: 0, // audits count for delete guard
+			deleteBlocked: false, //if audits are more than 0
 			itemToChange: null,
+			bulkMove: {
+				from: null,
+				to: null,
+			},
+			bulkFromCount: 0,
 			record: {
 				id: "",
 				name: "",
@@ -67,6 +75,11 @@ export default {
 			},
 			immediate: true,
 		},
+		"bulkMove.from": {
+			async handler(newVal) {
+				await this.updateBulkFromCount(newVal);
+			},
+		},
 	},
 	methods: {
 		...mapActions(useServer, [
@@ -75,6 +88,8 @@ export default {
 			"updateLocation",
 			"deleteLocation",
 			"setConfig",
+			"getAuditsByLocation",
+			"bulkMoveAudits",
 		]),
 		async fetchLocations() {
 			try {
@@ -126,7 +141,7 @@ export default {
 
 		async setDefaultLocation(item) {
 			try {
-				let result = await this.setConfig('defaultLocation', item.id);
+				let result = await this.setConfig("defaultLocation", item.id);
 				console.log(result);
 				if (result) {
 					this.fetchLocations(); //check if there is a better method lolz
@@ -152,9 +167,61 @@ export default {
 			this.idModified = false;
 			this.dialog = true;
 		},
-		confirmDelete(item) {
+		openBulkMoveDialog() {
+			this.bulkMove = { from: null, to: null };
+			this.bulkFromCount = 0;
+			this.bulkMoveDialog = true;
+		},
+		closeBulkMoveDialog() {
+			this.bulkMoveDialog = false;
+		},
+
+		async updateBulkFromCount(fromId) {
+			try {
+				this.bulkFromCount = 0;
+				if (!fromId || fromId === this.bulkMove.to) return;
+				const audits = await this.getAuditsByLocation(fromId);
+				this.bulkFromCount = Array.isArray(audits) ? audits.length : 0;
+			} catch (e) {
+				console.error("Failed to load audits count for source location:", e);
+				this.bulkFromCount = 0;
+			}
+		},
+		async confirmBulkMove() {
+			try {
+				this.loading = true;
+				await this.bulkMoveAudits(this.bulkMove.from, this.bulkMove.to);
+				this.bulkMoveDialog = false;
+				await this.fetchLocations();
+			} catch (error) {
+				console.error("Bulk move failed:", error);
+			} finally {
+				this.loading = false;
+			}
+		},
+
+		async confirmDelete(item) {
 			this.itemToDelete = item;
+			this.deleteAuditsCount = 0;
+			this.deleteBlocked = false;
+			try {
+				const audits = await this.getAuditsByLocation(item.id);
+				const count = Array.isArray(audits) ? audits.length : 0;
+				if (count > 0) {
+					this.deleteAuditsCount = count;
+					this.deleteBlocked = true;
+				}
+			} catch (e) {
+				console.error("Failed to check audits before delete:", e);
+			}
 			this.confirmDialogDelete = true;
+		},
+		openMoveForItemToDelete() {
+			if (!this.itemToDelete) return;
+
+			this.bulkMove = { from: this.itemToDelete.id, to: null };
+			this.bulkMoveDialog = true;
+			this.confirmDialogDelete = false;
 		},
 		confirmDefault(item) {
 			this.itemToChange = item;
@@ -189,6 +256,9 @@ export default {
 				<v-toolbar flat>
 					<v-toolbar-title>Locations</v-toolbar-title>
 					<v-spacer></v-spacer>
+					<v-btn color="primary" prepend-icon="mdi-swap-horizontal" @click="openBulkMoveDialog"
+						>Bulk Move</v-btn
+					>
 					<v-btn color="primary" prepend-icon="mdi-plus" @click="add">Add Location</v-btn>
 					<v-btn class="ml-2" @click="fetchLocations">Refresh</v-btn>
 				</v-toolbar>
@@ -199,7 +269,13 @@ export default {
 			</template>
 			<template v-slot:item.actions="{ item }">
 				<div class="d-flex justify-end">
-					<v-btn variant="text" icon="mdi-map-marker-star-outline" class="mr-2" :disabled="item.default" @click="confirmDefault(item)" />
+					<v-btn
+						variant="text"
+						icon="mdi-map-marker-star-outline"
+						class="mr-2"
+						:disabled="item.default"
+						@click="confirmDefault(item)"
+					/>
 					<v-btn variant="text" icon="mdi-pencil" @click="edit(item)" />
 					<v-btn variant="text" icon="mdi-delete" @click="confirmDelete(item)" />
 				</div>
@@ -247,12 +323,69 @@ export default {
 			<v-card-text>
 				Are you sure you want to delete the location "{{ itemToDelete?.name }}"?
 				<br />
-				<span class="text-red">This action cannot be undone.</span>
+				<span v-if="!deleteBlocked" class="text-red">This action cannot be undone.</span>
+				<div v-if="deleteBlocked" class="mt-4">
+					<v-alert type="warning" variant="tonal" density="compact">
+						Cannot delete: this location has <strong>{{ deleteAuditsCount }}</strong> audits. Move
+						them to another location before deleting.
+					</v-alert>
+				</div>
 			</v-card-text>
 			<v-card-actions>
 				<v-spacer></v-spacer>
 				<v-btn color="grey" text @click="confirmDialogDelete = false">Cancel</v-btn>
-				<v-btn color="error" @click="removeLocation(itemToDelete)">Delete</v-btn>
+				<v-btn v-if="!deleteBlocked" color="error" @click="removeLocation(itemToDelete)"
+					>Delete</v-btn
+				>
+				<v-btn v-else color="primary" @click="openMoveForItemToDelete">Move audits</v-btn>
+			</v-card-actions>
+		</v-card>
+	</v-dialog>
+
+	<!-- Bulk move dialog -->
+	<v-dialog v-model="bulkMoveDialog" max-width="400">
+		<v-card>
+			<v-card-title>Bulk move registrations</v-card-title>
+			<v-card-text>
+				<v-row dense>
+					<v-col cols="12">
+						<v-select
+							label="From location"
+							:items="locations"
+							item-title="name"
+							item-value="id"
+							v-model="bulkMove.from"
+							hint="Select the source location"
+							persistent-hint
+						/>
+					</v-col>
+					<v-col cols="12">
+						<v-select
+							label="To location"
+							:items="locations.filter(l => l.id !== bulkMove.from)"
+							item-title="name"
+							item-value="id"
+							v-model="bulkMove.to"
+							hint="Select the destination location"
+							persistent-hint
+						/>
+					</v-col>
+					<v-col cols="12">
+						<v-alert variant="tonal" type="info" density="compact">
+							Audits in source: <strong>{{ bulkFromCount }}</strong>
+						</v-alert>
+					</v-col>
+				</v-row>
+			</v-card-text>
+			<v-card-actions>
+				<v-btn variant="text" @click="closeBulkMoveDialog">Cancel</v-btn>
+				<v-spacer></v-spacer>
+				<v-btn
+					color="primary"
+					:disabled="!bulkMove.from || !bulkMove.to || bulkMove.from === bulkMove.to"
+					@click="confirmBulkMove"
+					>Move</v-btn
+				>
 			</v-card-actions>
 		</v-card>
 	</v-dialog>
@@ -261,7 +394,7 @@ export default {
 		<v-card>
 			<v-card-title class="text-h5">Confirm Changing Default Location</v-card-title>
 			<v-card-text>
-				Are you sure you want to chage the default location to "{{ itemToChange?.name }}"?
+				Are you sure you want to change the default location to "{{ itemToChange?.name }}"?
 			</v-card-text>
 			<v-card-actions>
 				<v-spacer></v-spacer>
