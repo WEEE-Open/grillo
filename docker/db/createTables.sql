@@ -116,7 +116,7 @@ BEGIN
     SELECT "location"
     INTO active_location
     FROM audit
-    WHERE "userId" = NEW."userId"
+    WHERE "userId" = user_id
     AND "endTime" IS NULL
     LIMIT 1;
 
@@ -125,6 +125,9 @@ BEGIN
     SET "seconds" = total_seconds, "activeLocation" = active_location
     WHERE "id" = user_id;
 
+    IF TG_OP = 'DELETE' THEN
+        RETURN OLD;
+    END IF;
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;

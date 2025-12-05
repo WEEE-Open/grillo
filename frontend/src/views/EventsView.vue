@@ -111,17 +111,19 @@ export default {
             this.dialog = true;
         },
 
-        async removeEvent(item) {
-            try {
-                let result = await this.deleteEvent(item.id);
-                if (result) {
-                    this.fetchEvents();
-                    this.confirmDialog = false;
-                }
-            } catch (error) {
-                console.error("Event deletion failed:", error);
-            }
-        },
+		async removeEvent(item) {
+			try {
+				let result = await this.deleteEvent(item.id);
+				if (result) {
+					this.fetchEvents();
+					this.confirmDialog = false;
+					this.detailDialog = false;
+					this.selectedEvent = null;
+				}
+			} catch (error) {
+				console.error("Event deletion failed:", error);
+			}
+		},
 
         confirmDelete(item) {
             this.itemToDelete = item;

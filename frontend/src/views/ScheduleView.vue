@@ -18,6 +18,7 @@ export default {
 		return {
 			events: [],
 			dialog: false,
+			bookDialog: false,
 			loading: false,
 			locations: [],
 			focus: [monday], 
@@ -89,22 +90,6 @@ return [];},
 			this.focus = Array.isArray(newFocusDate) ? newFocusDate : [newFocusDate];
 		},
 
-		showEvent(payload) {
-			
-			try {
-				const { event, nativeEvent } = payload || {};
-				this.selectedEvent = event || {};
-
-				this.selectedElement = (payload && payload.element) || (nativeEvent && nativeEvent.currentTarget) || (nativeEvent && nativeEvent.target) || null;
-
-				requestAnimationFrame(() => {
-					this.selectedOpen = true;
-				});
-			} catch (e) {
-				console.warn('Failed to open event details menu:', e);
-			}
-		},
-
 		async fetchLocations() {
 			try {
 				this.locations =  await this.getLocations();
@@ -140,6 +125,8 @@ return [];},
 						end: endDate,
 						color: 'green',
 						allDay: false,
+						kind: "booking", //needed for the detail
+						booking: dbBooking,
 					});
 				}
 			} catch (error) {
@@ -160,6 +147,8 @@ return [];},
 						end: endDate,
 						color: 'red',
 						allDay: false,
+						kind: "event", //needed for the detail dialog
+						event: dbEvent,
 					});
 				}
 
@@ -203,6 +192,30 @@ return [];},
 			this.resetForm();
 			this.dialog = true;
 		},
+		openBookDialog(nativeEvent, eventData) {
+			
+			console.log("Event clicked:", eventData);
+
+			this.selectedEvent = eventData.event;
+			this.bookDialog = true;
+		},
+
+		formatDateTime(date) {
+			if (!date) return "";
+			const d = date instanceof Date ? date : new Date(date);
+			return d.toLocaleString("it-IT", {
+				year: "numeric",
+				month: "2-digit",
+				day: "2-digit",
+				hour: "2-digit",
+				minute: "2-digit",
+			});
+		},
+
+		locationNameById(id) {
+			const loc = this.locations.find((l) => l.id === id);
+			return loc ? loc.name : id;
+		},
 
 		//autofill
 		onStartTimeUpdate(val) {
@@ -220,8 +233,31 @@ return [];},
 				endTime: "",
 				location: this.locations.length > 0 ? this.locations[0].id : "" 
 			};
-			this.endTimeTouched = false; 
-		}
+			this.endTimeTouched = false;
+		},
+
+		//C'è BISOGNO DI RAGIORARCI SU STA ROBA 
+		
+		//Count how many people are booked for an event
+		getBookingCountForEvent(evt) {
+			if (!evt || !evt.start) return 0;
+			const start = evt.start instanceof Date ? evt.start : new Date(evt.start);
+			const end = evt.end ? (evt.end instanceof Date ? evt.end : new Date(evt.end)) : null;
+			return this.events.filter(e => {
+				if (e.kind !== "booking") return false;
+				const bs = e.start instanceof Date ? e.start : new Date(e.start);
+				const be = e.end ? (e.end instanceof Date ? e.end : new Date(e.end)) : null;
+				// Overlap logic: booking intersects event window
+				if (!end && !be) {
+					return bs.getTime() === start.getTime();
+				}
+				const bookingStart = bs.getTime();
+				const bookingEnd = be ? be.getTime() : Infinity;
+				const eventStart = start.getTime();
+				const eventEnd = end ? end.getTime() : Infinity;
+				return bookingStart < eventEnd && bookingEnd > eventStart;
+			}).length;
+		},
 	},
 };
 </script>
@@ -237,7 +273,7 @@ return [];},
 				:interval-duration="2*60"
 				:model-value="focus"
 				@update:model-value="handleFocusUpdate"
-				@click:event="openAddEventDialog"
+				@click:event="openBookDialog"
 			/>
 
 		</v-sheet>
@@ -321,6 +357,54 @@ return [];},
 						prepend-icon="mdi-check"
 					>
 						Save Booking
+					</v-btn>
+				</v-card-actions>
+			</v-card>
+		</v-dialog>
+
+		<!-- booking dialog opened by clicking an event -->
+		<v-dialog v-model="bookDialog" max-width="500">
+			<v-card>
+				<v-card-title class="text-h6">
+					{{ selectedEvent?.kind === 'booking' ? 'Booking Details' : 'Event Details' }}
+				</v-card-title>
+				<v-card-text>
+					<div v-if="selectedEvent && selectedEvent.title">
+						<h4 class="mb-2">{{ selectedEvent.title }}</h4>
+						<v-card variant="outlined" class="pa-3">
+							<div class="d-flex align-center mb-2">
+								<strong>Start:</strong>
+								<span class="ml-2">{{ formatDateTime(selectedEvent.start) }}</span>
+							</div>
+							<div class="d-flex align-center">
+								<strong>End:</strong>
+								<span class="ml-2">{{ formatDateTime(selectedEvent.end) }}</span>
+							</div>
+						</v-card>
+
+						<!-- Conditional details -->
+						<div class="mt-3" v-if="selectedEvent.kind === 'event' && selectedEvent.event">
+							<h4 class="mb-2">Description</h4>
+							<p>{{ selectedEvent.event.description || 'No description available' }}</p>
+							<h4 class="mb-2">Bookings overlapping this event</h4>
+							<p>{{ getBookingCountForEvent(selectedEvent) }}</p>
+						</div>
+						<div class="mt-3" v-else-if="selectedEvent.kind === 'booking' && selectedEvent.booking">
+							<h4 class="mb-2">Booked By</h4>
+							<p>{{ selectedEvent.booking.user?.name || 'Unknown user' }}</p>
+							<h4 class="mb-2">Location</h4>
+							<p>{{ locationNameById(selectedEvent.booking.location) }}</p>
+						</div>
+					</div>
+					<div v-else>
+						No event selected.
+					</div>
+				</v-card-text>
+				<v-card-actions>
+					<v-btn variant="text" @click="bookDialog = false">Close</v-btn>
+					<v-spacer></v-spacer>
+					<v-btn color="green" variant="elevated" @click="bookDialog = false">
+						OK
 					</v-btn>
 				</v-card-actions>
 			</v-card>
