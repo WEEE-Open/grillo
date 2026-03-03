@@ -1,12 +1,8 @@
 <script>
-import { VCalendar } from "vuetify/labs/VCalendar";
 import { useServer } from "../stores/server";
 import { mapActions } from "pinia";
 
 export default {
-	components: {
-		VCalendar,
-	},
 	data() {
 		//find current monday
 		const today = new Date();
@@ -17,11 +13,12 @@ export default {
 
 		return {
 			events: [],
+			bookings: [],
 			dialog: false,
 			bookDialog: false,
 			loading: false,
 			locations: [],
-			focus: [monday],
+			focus: monday,
 			bookingForm: {
 				startTime: "",
 				endTime: "",
@@ -35,8 +32,6 @@ export default {
 		};
 	},
 	mounted() {
-		this.fetchBookings(new Date());
-		this.fetchEvents();
 		this.fetchLocations();
 	},
 	computed: {
@@ -76,23 +71,28 @@ export default {
 		isUserLoggedIn() {
 			return this.currentUser && this.currentUser.id;
 		},
+		displayingEvents() {
+			return [
+				...this.events,
+				...this.bookings,
+			];
+		}
 	},
 	watch: {
 		focus: {
-			handler(newFocus, oldFocus) {
-				if (Array.isArray(newFocus) && newFocus.length > 0 && newFocus !== oldFocus) {
-					this.fetchBookings(newFocus[0]);
+			async handler(newFocus, oldFocus) {
+				if (newFocus !== oldFocus) {
+					this.loading = true;
+					await Promise.all([this.fetchBookings(newFocus), this.fetchEvents()]).finally(() => {
+						this.loading = false;
+					});
 				}
 			},
+			immediate: true,
 		},
 	},
 	methods: {
 		...mapActions(useServer, ["getBookings", "createBooking", "getLocations", "getEvents"]),
-
-		handleFocusUpdate(newFocusDate) {
-			console.log("Focus update called with:", newFocusDate);
-			this.focus = Array.isArray(newFocusDate) ? newFocusDate : [newFocusDate];
-		},
 
 =======
 >>>>>>> c39da0d (Minor fix on event view + working on clickable events for calendar)
@@ -107,35 +107,29 @@ export default {
 			}
 		},
 
-		async onCalendarChange(eventData) {
-			console.log("Calendar change event:", eventData);
-			const startDate = eventData.start || eventData || new Date();
-			await this.fetchBookings(startDate);
-			await this.fetchEvents();
-		},
-
 		async fetchBookings(startOfWeek) {
 			try {
 				const unixStart = Math.floor(startOfWeek.getTime() / 1000);
 				const dbBookings = await this.getBookings(unixStart);
 
-				for (const dbBooking of dbBookings) {
-					const startDate = new Date(dbBooking.startTime * 1000);
-					const endDate = dbBooking.endTime ? new Date(dbBooking.endTime * 1000) : null;
-					this.events.push({
-						title: `${dbBooking.user.name}`,
+				this.bookings = dbBookings.map(b => {
+					const startDate = new Date(b.startTime * 1000);
+					const endDate = b.endTime ? new Date(b.endTime * 1000) : null;
+					return {
+						name: `${b.user.name}`,
 						start: startDate,
 						end: endDate,
 						color: "green",
-						allDay: false,
+						timed: true,
 						kind: "booking", //needed for the detail
-						booking: dbBooking,
-					});
-				}
+						booking: b,
+					};
+				});
 			} catch (error) {
 				console.log("Booking fetch failed: ", error);
 			}
 		},
+
 		async fetchEvents() {
 			try {
 				const dbEvents = await this.getEvents();
@@ -191,7 +185,6 @@ export default {
 			this.dialog = true;
 		},
 		openBookDialog(nativeEvent, eventData) {
-			
 			console.log("Event clicked:", eventData);
 
 			this.selectedEvent = eventData.event;
@@ -211,7 +204,7 @@ export default {
 		},
 
 		locationNameById(id) {
-			const loc = this.locations.find((l) => l.id === id);
+			const loc = this.locations.find(l => l.id === id);
 			return loc ? loc.name : id;
 		},
 
@@ -231,23 +224,74 @@ export default {
 				endTime: "",
 				location: this.locations.length > 0 ? this.locations[0].id : "",
 			};
-			this.endTimeTouched = false; 
-		}
+			this.endTimeTouched = false;
+		},
+
+		//C'è BISOGNO DI RAGIORARCI SU STA ROBA
+
+		//Count how many people are booked for an event
+		getBookingCountForEvent(evt) {
+			if (!evt || !evt.start) return 0;
+			const start = evt.start instanceof Date ? evt.start : new Date(evt.start);
+			const end = evt.end ? (evt.end instanceof Date ? evt.end : new Date(evt.end)) : null;
+			return this.events.filter(e => {
+				if (e.kind !== "booking") return false;
+				const bs = e.start instanceof Date ? e.start : new Date(e.start);
+				const be = e.end ? (e.end instanceof Date ? e.end : new Date(e.end)) : null;
+				// Overlap logic: booking intersects event window
+				if (!end && !be) {
+					return bs.getTime() === start.getTime();
+				}
+				const bookingStart = bs.getTime();
+				const bookingEnd = be ? be.getTime() : Infinity;
+				const eventStart = start.getTime();
+				const eventEnd = end ? end.getTime() : Infinity;
+				return bookingStart < eventEnd && bookingEnd > eventStart;
+			}).length;
+		},
+
+		setToday() {
+			this.focus = new Date();
+		},
+
+		prev() {
+			this.$refs.calendar.prev()
+		},
+
+		next() {
+			this.$refs.calendar.next()
+		},
 	},
 };
 </script>
 
 <template>
 	<v-main class="position-relative">
+		<v-sheet height="64">
+			<v-toolbar>
+				<v-btn class="mx-4" variant="outlined" @click="setToday">
+					Today
+				</v-btn>
+				<v-btn size="small" variant="text" icon @click="prev">
+					<v-icon size="small"> mdi-chevron-left </v-icon>
+				</v-btn>
+				<v-btn size="small" variant="text" icon @click="next">
+					<v-icon size="small"> mdi-chevron-right </v-icon>
+				</v-btn>
+				<v-toolbar-title v-if="$refs.calendar">
+					{{ $refs.calendar.title }}
+				</v-toolbar-title>
+			</v-toolbar>
+		</v-sheet>
 		<v-sheet>
-			<VCalendar
+			<v-calendar
+				class="h-100"
 				ref="calendar"
-				:events="events"
-				view-mode="week"
-				:weekdays="[0, 1, 2, 3, 4, 5, 6]"
+				:events="displayingEvents"
+				type="week"
+				:weekdays="[1, 2, 3, 4, 5, 6]"
 				:interval-duration="2 * 60"
-				:model-value="focus"
-				@update:model-value="handleFocusUpdate"
+				v-model="focus"
 				@click:event="openBookDialog"
 			/>
 		</v-sheet>
@@ -338,7 +382,7 @@ export default {
 		<v-dialog v-model="bookDialog" max-width="500">
 			<v-card>
 				<v-card-title class="text-h6">
-					{{ selectedEvent?.kind === 'booking' ? 'Booking Details' : 'Event Details' }}
+					{{ selectedEvent?.kind === "booking" ? "Booking Details" : "Event Details" }}
 				</v-card-title>
 				<v-card-text>
 					<div v-if="selectedEvent && selectedEvent.title">
@@ -357,27 +401,23 @@ export default {
 						<!-- Conditional details -->
 						<div class="mt-3" v-if="selectedEvent.kind === 'event' && selectedEvent.event">
 							<h4 class="mb-2">Description</h4>
-							<p>{{ selectedEvent.event.description || 'No description available' }}</p>
+							<p>{{ selectedEvent.event.description || "No description available" }}</p>
 							<h4 class="mb-2">Bookings overlapping this event</h4>
 							<p>{{ getBookingCountForEvent(selectedEvent) }}</p>
 						</div>
 						<div class="mt-3" v-else-if="selectedEvent.kind === 'booking' && selectedEvent.booking">
 							<h4 class="mb-2">Booked By</h4>
-							<p>{{ selectedEvent.booking.user?.name || 'Unknown user' }}</p>
+							<p>{{ selectedEvent.booking.user?.name || "Unknown user" }}</p>
 							<h4 class="mb-2">Location</h4>
 							<p>{{ locationNameById(selectedEvent.booking.location) }}</p>
 						</div>
 					</div>
-					<div v-else>
-						No event selected.
-					</div>
+					<div v-else>No event selected.</div>
 				</v-card-text>
 				<v-card-actions>
 					<v-btn variant="text" @click="bookDialog = false">Close</v-btn>
 					<v-spacer></v-spacer>
-					<v-btn color="green" variant="elevated" @click="bookDialog = false">
-						OK
-					</v-btn>
+					<v-btn color="green" variant="elevated" @click="bookDialog = false"> OK </v-btn>
 				</v-card-actions>
 			</v-card>
 		</v-dialog>

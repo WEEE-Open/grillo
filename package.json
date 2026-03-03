@@ -23,7 +23,7 @@
 		"docker:dev:up": "docker compose -f docker-compose.dev.yml up -d",
 		"docker:dev:down": "docker compose -f docker-compose.dev.yml down",
 		"docker:dev:rebuild": "docker compose -f docker-compose.dev.yml down && docker compose -f docker-compose.dev.yml build --no-cache && docker compose -f docker-compose.dev.yml up -d",
-		"lint": "prettier --write ."
+		"lint": "prettier --write ./frontend/src ./weeetofono ./backend"
 	},
 	"author": "WEEE Open",
 	"license": "MIT"

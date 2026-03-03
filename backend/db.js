@@ -71,9 +71,9 @@ export class Database {
 			${location ? this.db`AND location = ${location}` : this.db``};`;
 		const uniqueUsers = await Promise.all(
 			result
-			.map(b => b.userId)
-			.filter((v, i, a) => a.indexOf(v) === i)
-			.map(uId => this.getUser(uId))
+				.map(b => b.userId)
+				.filter((v, i, a) => a.indexOf(v) === i)
+				.map(uId => this.getUser(uId)),
 		);
 		const usersMap = Object.fromEntries(uniqueUsers.map(u => [u.id, u]));
 		return result.map(b => {

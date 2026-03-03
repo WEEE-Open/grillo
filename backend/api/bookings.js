@@ -26,7 +26,7 @@ export const bookings = {
 		let validFilter = false;
 
 		if (req.query.users) {
-			let usersList = req.query.users.split(',');
+			let usersList = req.query.users.split(",");
 			for (let userId of usersList) {
 				let user = await db.getUser(userId);
 				if (user) {

@@ -92,7 +92,7 @@ export default {
 		<v-app-bar class="d-none d-sm-flex" flat v-if="ready && !blocked && initiated">
 			<v-container class="mx-auto d-flex align-center justify-center ga-10" :max-width="1200">
 				<v-tabs
-					:model-value="$route.matched[0].name"
+					:model-value="$route.matched[0]?.name"
 					@update:model-value="$router.push({ name: $event })"
 					color="primary"
 					:mandatory="false"
