@@ -1,22 +1,47 @@
 import * as v from "valibot";
+import dayjs from "../day.js";
 
 import { db } from "../index.js";
 
 export const audits = {
 	auth: "RO",
 	route: "/audits",
+	query: () =>
+		v.pipeAsync(
+			v.object({
+				user: v.nullish(v.fallback(v.pipe(v.string(), v.trim(), v.nonEmpty()), null)),
+				location: v.nullish(v.fallback(v.pipe(v.string(), v.trim(), v.nonEmpty()), null)),
+				startTime: v.pipe(
+					v.string(),
+					v.transform(Number.parseInt),
+					v.check(v => !Number.isNaN(v)),
+					v.transform(Math.round),
+				),
+				endTime: v.pipe(
+					v.string(),
+					v.transform(Number.parseInt),
+					v.check(v => !Number.isNaN(v)),
+					v.transform(Math.round),
+				),
+			}),
+			v.check(query => {
+				return query.startTime < query.endTime;
+			}, "The end time must be greater than the start time."),
+			v.check(query => {
+				return query.endTime - query.startTime < 35 * 24 * 60 * 60 * 1000;
+			}, "The time range is too big."),
+			v.checkAsync(async query => {
+				if (!query.user) return true;
+				return !!(await db.getUser(query.user));
+			}, "Invalid user"),
+			v.checkAsync(async query => {
+				if (!query.location) return true;
+				return !!(await db.getLocation(query.location));
+			}, "Invalid location"),
+		),
 	async handler(req, res) {
-		let userId = req.body.user ?? null;
-		let dateInput = req.body.dateString;
-		let baseDate = dayjs(dateInput);
-		if (!baseDate.isValid()) {
-			baseDate = dayjs(); // current week is not valid
-		}
-		const startWeek = baseDate.startOf("isoWeek").unix(); // in seconds
-		const endWeek = baseDate.endOf("isoWeek").unix();
-
-		let weekAudit = await db.getAudits(startWeek, endWeek, userId);
-		res.json(weekAudit);
+		let audits = await db.getAudits(req.query);
+		res.json(audits);
 	},
 };
 
@@ -36,7 +61,7 @@ export const auditsLocation = {
 	auth: "RO",
 	route: "/audits/location/:id",
 	async handler(req, res) {
-		let audits = await db.getAuditsByLocation(req.params.id);
+		let audits = await db.getAudits({ location: req.params.id });
 		if (!audits) {
 			return res.status(404).json("Audit not found");
 		}
@@ -115,6 +140,8 @@ export const auditsNew = {
 			if (req.body.user != req.session.user.id) {
 				return res.status(403).json({ error: "Can't add audit for another user" });
 			}
+		} else if (req.body.approved == undefined) {
+			req.body.approved = true;
 		}
 
 		if (!req.body.location) req.body.location = await db.getConfig("defaultLocation");
@@ -359,13 +386,11 @@ export const auditsPatchLocation = {
 
 		// Load audits to move
 		const fromLocationId = req.body.fromId;
-		console.log("Eccomi");
-		console.log(fromLocationId);
 		const fromLocation = await db.getLocation(fromLocationId);
 		if (!fromLocation) {
 			return res.status(404).json({ error: "Source location not found" });
 		}
-		const audits = await db.getAuditsByLocation(fromLocationId);
+		const audits = await db.getAudits({ location: fromLocationId });
 
 		// Permission checks for non-admins
 		if (!req.session.isAdmin) {

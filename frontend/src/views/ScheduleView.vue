@@ -1,8 +1,12 @@
 <script>
+import ViewBooking from "@/dialogs/ViewBooking.vue";
 import { useServer } from "../stores/server";
-import { mapActions } from "pinia";
+import { mapActions, mapState } from "pinia";
+import CreateBooking from "@/dialogs/CreateBooking.vue";
+import ViewEvent from "@/dialogs/ViewEvent.vue";
 
 export default {
+	inject: ["dialog"],
 	data() {
 		//find current monday
 		const today = new Date();
@@ -14,7 +18,6 @@ export default {
 		return {
 			events: [],
 			bookings: [],
-			dialog: false,
 			bookDialog: false,
 			loading: false,
 			locations: [],
@@ -35,48 +38,11 @@ export default {
 		this.fetchLocations();
 	},
 	computed: {
-		bookingDateStartRules() {
-			if (!this.bookingForm.startTime) return ["Start time is required"];
-			if (new Date(this.bookingForm.startTime) <= new Date()) {
-				return ["Start time cannot be in the past!"];
-			}
+		...mapState(useServer, ["session"]),
 
-			return [];
-		},
-
-		bookingLocationRules() {
-			if (!this.bookingForm.location) return ["Location is required"];
-			return [];
-		},
-
-		bookingDateEndRules() {
-			if (!this.bookingForm.endTime) return ["End time is required"];
-			if (new Date(this.bookingForm.startTime) >= new Date(this.bookingForm.endTime)) {
-				return ["End time must be after start time"];
-			}
-			return [];
-		},
-
-		isBookingFormValid() {
-			return (
-				this.bookingDateStartRules.length === 0 &&
-				this.bookingDateEndRules.length === 0 &&
-				this.bookingLocationRules.length === 0
-			);
-		},
-		currentUser() {
-			const serverStore = useServer();
-			return serverStore.session.user;
-		},
-		isUserLoggedIn() {
-			return this.currentUser && this.currentUser.id;
-		},
 		displayingEvents() {
-			return [
-				...this.events,
-				...this.bookings,
-			];
-		}
+			return [...this.events, ...this.bookings];
+		},
 	},
 	watch: {
 		focus: {
@@ -92,16 +58,11 @@ export default {
 		},
 	},
 	methods: {
-		...mapActions(useServer, ["getBookings", "createBooking", "getLocations", "getEvents"]),
+		...mapActions(useServer, ["getBookings", "getLocations", "getEvents"]),
 
-=======
->>>>>>> c39da0d (Minor fix on event view + working on clickable events for calendar)
 		async fetchLocations() {
 			try {
 				this.locations = await this.getLocations();
-				if (this.locations.length > 0) {
-					this.bookingForm.location = this.locations[0].id;
-				}
 			} catch (error) {
 				console.log("Locations fetch failed: ", error);
 			}
@@ -133,15 +94,16 @@ export default {
 		async fetchEvents() {
 			try {
 				const dbEvents = await this.getEvents();
+				this.events = [];
 				for (const dbEvent of dbEvents) {
 					const startDate = new Date(dbEvent.startTime * 1000);
 					const endDate = dbEvent.endTime ? new Date(dbEvent.endTime * 1000) : null;
 					this.events.push({
-						title: `${dbEvent.title}`,
+						name: `${dbEvent.title}`,
 						start: startDate,
 						end: endDate,
 						color: "red",
-						allDay: false,
+						timed: true,
 						kind: "event", //needed for the detail dialog
 						event: dbEvent,
 					});
@@ -151,80 +113,28 @@ export default {
 			}
 		},
 
-		async addBooking() {
-			try {
-				const serverStore = useServer();
-				const userId = serverStore.session.user.id;
-
-				if (!userId) {
-					throw new Error("User not logged in - please login first");
-				}
-
-				const bData = {
-					startTime: this.bookingForm.startTime,
-					endTime: this.bookingForm.endTime,
-					location: this.bookingForm.location,
-					userId: userId,
-				};
-
-				console.log("Sending booking data:", bData);
-				console.log("User session:", serverStore.session);
-
-				await this.createBooking(bData);
-				this.dialog = false;
-				this.resetForm();
-				await this.fetchBookings(new Date());
-			} catch (error) {
-				console.log("Booking add failed: ", error);
-				alert(`Failed to create booking: ${error.message}`);
-			}
-		},
-
-		openAddEventDialog() {
-			this.resetForm();
-			this.dialog = true;
-		},
-		openBookDialog(nativeEvent, eventData) {
-			console.log("Event clicked:", eventData);
-
-			this.selectedEvent = eventData.event;
-			this.bookDialog = true;
-		},
-
-		formatDateTime(date) {
-			if (!date) return "";
-			const d = date instanceof Date ? date : new Date(date);
-			return d.toLocaleString("it-IT", {
-				year: "numeric",
-				month: "2-digit",
-				day: "2-digit",
-				hour: "2-digit",
-				minute: "2-digit",
+		async openAddEventDialog() {
+			await this.dialog(CreateBooking, {
+				isAdmin: this.session.isAdmin,
+				locations: this.locations,
 			});
+
+			this.fetchBookings(this.focus);
+			this.fetchEvents();
 		},
 
-		locationNameById(id) {
-			const loc = this.locations.find(l => l.id === id);
-			return loc ? loc.name : id;
-		},
-
-		//autofill
-		onStartTimeUpdate(val) {
-			if (!this.endTimeTouched) {
-				this.bookingForm.endTime = val;
+		async openEventDialog(nativeEvent, eventData) {
+			if (eventData.event.kind == "booking") {
+				await this.dialog(ViewBooking, {
+					booking: eventData.event.booking,
+				});
+			} else if (eventData.event.kind == "event") {
+				await this.dialog(ViewEvent, {
+					event: eventData.event.event,
+				});
 			}
-		},
-		onEndTimeUpdate() {
-			this.endTimeTouched = true;
-		},
-
-		resetForm() {
-			this.bookingForm = {
-				startTime: "",
-				endTime: "",
-				location: this.locations.length > 0 ? this.locations[0].id : "",
-			};
-			this.endTimeTouched = false;
+			this.fetchBookings(this.focus);
+			this.fetchEvents();
 		},
 
 		//C'è BISOGNO DI RAGIORARCI SU STA ROBA
@@ -255,11 +165,11 @@ export default {
 		},
 
 		prev() {
-			this.$refs.calendar.prev()
+			this.$refs.calendar.prev();
 		},
 
 		next() {
-			this.$refs.calendar.next()
+			this.$refs.calendar.next();
 		},
 	},
 };
@@ -269,9 +179,7 @@ export default {
 	<v-main class="position-relative">
 		<v-sheet height="64">
 			<v-toolbar>
-				<v-btn class="mx-4" variant="outlined" @click="setToday">
-					Today
-				</v-btn>
+				<v-btn class="mx-4" variant="outlined" @click="setToday"> Today </v-btn>
 				<v-btn size="small" variant="text" icon @click="prev">
 					<v-icon size="small"> mdi-chevron-left </v-icon>
 				</v-btn>
@@ -292,153 +200,19 @@ export default {
 				:weekdays="[1, 2, 3, 4, 5, 6]"
 				:interval-duration="2 * 60"
 				v-model="focus"
-				@click:event="openBookDialog"
+				@click:event="openEventDialog"
 			/>
 		</v-sheet>
 
-		<v-btn
+		<v-fab
+			v-if="!loading"
 			color="green"
+			app
+			location="bottom right"
+			elevation="5"
 			size="large"
-			icon
-			elevation="6"
-			class="floating-add-btn"
+			icon="mdi-plus"
 			@click="openAddEventDialog"
-		>
-			<v-icon size="28">mdi-plus</v-icon>
-		</v-btn>
-
-		<!-- booking/event creation -->
-		<v-dialog v-model="dialog" max-width="600" persistent>
-			<v-card>
-				<v-card-title class="text-h5">Create a Booking</v-card-title>
-				<v-card-subtitle v-if="isUserLoggedIn">
-					Creating booking for user: {{ currentUser.name }}
-				</v-card-subtitle>
-				<v-card-subtitle v-else>
-					User not logged in - Debug: {{ currentUser.name }}
-				</v-card-subtitle>
-
-				<v-card-text>
-					<v-container>
-						<v-row>
-							<v-col cols="12">
-								<v-select
-									label="Location"
-									v-model="bookingForm.location"
-									:items="locations"
-									:rules="bookingLocationRules"
-									item-title="name"
-									item-value="id"
-									variant="outlined"
-									:disabled="!isUserLoggedIn"
-									required
-								/>
-							</v-col>
-							<v-col cols="12" md="6">
-								<v-text-field
-									label="Start Date and Time"
-									v-model="bookingForm.startTime"
-									type="datetime-local"
-									:rules="bookingDateStartRules"
-									variant="outlined"
-									:disabled="!isUserLoggedIn"
-									required
-									@update:model-value="onStartTimeUpdate"
-								/>
-							</v-col>
-							<v-col cols="12" md="6">
-								<v-text-field
-									label="End Date and Time"
-									v-model="bookingForm.endTime"
-									type="datetime-local"
-									:rules="bookingDateEndRules"
-									variant="outlined"
-									:disabled="!isUserLoggedIn"
-									required
-									@update:model-value="onEndTimeUpdate"
-								/>
-							</v-col>
-						</v-row>
-					</v-container>
-				</v-card-text>
-
-				<v-card-actions>
-					<v-btn variant="text" @click="dialog = false"> Cancel </v-btn>
-					<v-spacer></v-spacer>
-					<v-btn
-						color="green"
-						variant="elevated"
-						@click="addBooking"
-						:disabled="!isBookingFormValid || !isUserLoggedIn"
-						prepend-icon="mdi-check"
-					>
-						Save Booking
-					</v-btn>
-				</v-card-actions>
-			</v-card>
-		</v-dialog>
-
-		<!-- booking dialog opened by clicking an event -->
-		<v-dialog v-model="bookDialog" max-width="500">
-			<v-card>
-				<v-card-title class="text-h6">
-					{{ selectedEvent?.kind === "booking" ? "Booking Details" : "Event Details" }}
-				</v-card-title>
-				<v-card-text>
-					<div v-if="selectedEvent && selectedEvent.title">
-						<h4 class="mb-2">{{ selectedEvent.title }}</h4>
-						<v-card variant="outlined" class="pa-3">
-							<div class="d-flex align-center mb-2">
-								<strong>Start:</strong>
-								<span class="ml-2">{{ formatDateTime(selectedEvent.start) }}</span>
-							</div>
-							<div class="d-flex align-center">
-								<strong>End:</strong>
-								<span class="ml-2">{{ formatDateTime(selectedEvent.end) }}</span>
-							</div>
-						</v-card>
-
-						<!-- Conditional details -->
-						<div class="mt-3" v-if="selectedEvent.kind === 'event' && selectedEvent.event">
-							<h4 class="mb-2">Description</h4>
-							<p>{{ selectedEvent.event.description || "No description available" }}</p>
-							<h4 class="mb-2">Bookings overlapping this event</h4>
-							<p>{{ getBookingCountForEvent(selectedEvent) }}</p>
-						</div>
-						<div class="mt-3" v-else-if="selectedEvent.kind === 'booking' && selectedEvent.booking">
-							<h4 class="mb-2">Booked By</h4>
-							<p>{{ selectedEvent.booking.user?.name || "Unknown user" }}</p>
-							<h4 class="mb-2">Location</h4>
-							<p>{{ locationNameById(selectedEvent.booking.location) }}</p>
-						</div>
-					</div>
-					<div v-else>No event selected.</div>
-				</v-card-text>
-				<v-card-actions>
-					<v-btn variant="text" @click="bookDialog = false">Close</v-btn>
-					<v-spacer></v-spacer>
-					<v-btn color="green" variant="elevated" @click="bookDialog = false"> OK </v-btn>
-				</v-card-actions>
-			</v-card>
-		</v-dialog>
+		/>
 	</v-main>
 </template>
-
-<style scoped>
-.floating-add-btn {
-	position: fixed;
-	bottom: 24px;
-	right: 24px;
-	z-index: 10;
-	width: 56px;
-	height: 56px;
-	border-radius: 50%;
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-	transition: all 0.3s ease;
-}
-
-.floating-add-btn:hover {
-	transform: scale(1.1);
-	box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-}
-</style>

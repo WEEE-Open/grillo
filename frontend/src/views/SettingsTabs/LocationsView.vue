@@ -142,7 +142,6 @@ export default {
 		async setDefaultLocation(item) {
 			try {
 				let result = await this.setConfig("defaultLocation", item.id);
-				console.log(result);
 				if (result) {
 					this.fetchLocations(); //check if there is a better method lolz
 					this.confirmDialogDefault = false;

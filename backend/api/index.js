@@ -53,6 +53,26 @@ for (const routeId in routes) {
 		route.route,
 		auth,
 		async (req, res, next) => {
+			if (route.params) {
+				let validated = await v.safeParseAsync(route.params({ req, res }), req.params);
+				if (!validated.success) {
+					res
+						.status(400)
+						.json({ error: "Bad request", issues: validated.issues.map(i => i.message) });
+					return;
+				}
+				req.params = validated.output;
+			}
+			if (route.query) {
+				let validated = await v.safeParseAsync(route.query({ req, res }), req.query);
+				if (!validated.success) {
+					res
+						.status(400)
+						.json({ error: "Bad request", issues: validated.issues.map(i => i.message) });
+					return;
+				}
+				req.query = validated.output;
+			}
 			if (["post", "put", "patch"].includes(route.method) && !route.unsafeBody) {
 				if (!route.body)
 					res.status(500).json({

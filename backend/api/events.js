@@ -13,6 +13,14 @@ export const events = {
 export const eventsId = {
 	auth: "RO",
 	route: "/events/:id",
+	params: () =>
+		v.object({
+			id: v.pipe(
+				v.string(),
+				v.transform(Number.parseInt),
+				v.check(v => !Number.isNaN(v)),
+			),
+		}),
 	async handler(req, res) {
 		let event = await db.getEvent(req.params.id);
 		if (!event) {
@@ -78,6 +86,14 @@ export const eventsIdEdit = {
 	auth: "admin",
 	method: "POST",
 	route: "/events/:id",
+	params: () =>
+		v.object({
+			id: v.pipe(
+				v.string(),
+				v.transform(Number.parseInt),
+				v.check(v => !Number.isNaN(v)),
+			),
+		}),
 	body: () =>
 		v.pipe(
 			v.object({
@@ -135,6 +151,14 @@ export const eventsIdDelete = {
 	auth: "admin",
 	method: "DELETE",
 	route: "/events/:id",
+	params: () =>
+		v.object({
+			id: v.pipe(
+				v.string(),
+				v.transform(Number.parseInt),
+				v.check(v => !Number.isNaN(v)),
+			),
+		}),
 	async handler(req, res) {
 		const event = await db.getEvent(req.params.id);
 		if (!event) {

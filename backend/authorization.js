@@ -9,7 +9,6 @@ export async function validateSession(req, res, next) {
 	}
 	if (!req.session && req.get("Authorization") != undefined) {
 		let [type, token] = req.get("Authorization").trim().split(/\s+/);
-		console.log(type, token);
 		if (type !== "Bearer") {
 			// this is in preparation for future in case we want to move to jwt or something else
 			res.status(400).send("Invalid Authorization header");

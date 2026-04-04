@@ -108,8 +108,8 @@ export const bookingsNew = {
 			return res.status(400).json({ error: "Admins must provide end time" });
 		}
 		//Converts from milliseconds
-		let startTime = dayjs(req.body.startTime);
-		let endTime = dayjs(req.body.endTime);
+		let startTime = dayjs(req.body.startTime * 1000);
+		let endTime = dayjs(req.body.endTime * 1000);
 
 		if (startTime.isBefore(dayjs())) {
 			return res.status(400).json({ error: "Invalid time" });
@@ -128,6 +128,14 @@ export const bookingsNew = {
 export const bookingsId = {
 	auth: "RO",
 	route: "/bookings/:id",
+	params: () =>
+		v.object({
+			id: v.pipe(
+				v.string(),
+				v.transform(Number.parseInt),
+				v.check(v => !Number.isNaN(v)),
+			),
+		}),
 	async handler(req, res) {
 		const booking = await db.getBooking(req.params.id);
 		if (!booking) return res.status(404).json({ error: "Booking not found" });
@@ -139,6 +147,14 @@ export const bookingsIdEdit = {
 	auth: "RW",
 	method: "POST",
 	route: "/bookings/:id",
+	params: () =>
+		v.object({
+			id: v.pipe(
+				v.string(),
+				v.transform(Number.parseInt),
+				v.check(v => !Number.isNaN(v)),
+			),
+		}),
 	body: ({ req }) =>
 		v.pipe(
 			v.object({
@@ -215,9 +231,13 @@ export const bookingsIdDelete = {
 	auth: "RW",
 	method: "DELETE",
 	route: "/bookings/:id",
-	body: ({ req }) =>
+	params: () =>
 		v.object({
-			user: v.fallback(v.pipe(v.string(), v.trim(), v.nonEmpty()), req.session.user.id),
+			id: v.pipe(
+				v.string(),
+				v.transform(Number.parseInt),
+				v.check(v => !Number.isNaN(v)),
+			),
 		}),
 	async handler(req, res) {
 		let booking = await db.getBooking(req.params.id);
@@ -226,12 +246,7 @@ export const bookingsIdDelete = {
 			return res.status(404).json({ error: "Booking not found" });
 		}
 
-		const user = await db.getUser(req.body.user);
-		if (!user) {
-			return res.status(404).json({ error: "User not found" });
-		}
-
-		if (booking.userId != req.body.user.id && !user.isAdmin) {
+		if (booking.userId != req.session.user.id && !req.session.user.isAdmin) {
 			return res.status(403).json({ error: "Not authorized" });
 		}
 

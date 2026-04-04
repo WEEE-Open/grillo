@@ -76,7 +76,6 @@ export const useServer = defineStore("server", {
 		async setConfig(key, value) {
 			let [request, abort] = this.makeRequest("PATCH", "/config", { [key]: value });
 			let response = await request;
-			console.log(response);
 			if (response.ok) {
 				let body = await response.json();
 				this.servicesLinks = body.servicesLinks;
@@ -242,11 +241,9 @@ export const useServer = defineStore("server", {
 		},
 
 		async createBooking(data) {
-			console.log("Sending booking data:", data);
-
 			const payload = {
-				startTime: new Date(data.startTime).getTime(), // milliseconds
-				endTime: new Date(data.endTime).getTime(),
+				startTime: Math.floor(new Date(data.startTime).getTime()),
+				endTime: Math.floor(new Date(data.endTime).getTime()),
 				location: data.location,
 			};
 
@@ -254,12 +251,13 @@ export const useServer = defineStore("server", {
 
 			let response = await request;
 
-			console.log("Response status:", response.status);
+			return response;
+		},
 
-			if (!response.ok) {
-				const errorText = await response.text();
-				console.log("Error response:", errorText);
-			}
+		async deleteBooking(id) {
+			let [request, abort] = this.makeRequest("DELETE", `/bookings/${encodeURIComponent(id)}`);
+
+			let response = await request;
 
 			return response;
 		},
@@ -284,7 +282,6 @@ export const useServer = defineStore("server", {
 				title: event.title,
 				description: event.description,
 			};
-			console.log("Questo è il payload: ", payload);
 
 			let [request, abort] = this.makeRequest("POST", "/events", payload);
 
@@ -304,6 +301,7 @@ export const useServer = defineStore("server", {
 				}
 			}
 		},
+
 		async editEvent(eventId, eventData) {
 			const payload = {
 				startTime: Math.floor(new Date(eventData.startTime).getTime() / 1000), //seconds
@@ -330,6 +328,7 @@ export const useServer = defineStore("server", {
 				}
 			}
 		},
+
 		async deleteEvent(eventId) {
 			let [request, abort] = this.makeRequest("DELETE", `/events/${eventId}`);
 
@@ -351,6 +350,35 @@ export const useServer = defineStore("server", {
 		},
 
 		//AUDITS
+		async getAudits(filters) {
+			let [request, abort] = this.makeRequest(
+				"GET",
+				`/audits?startTime=${Math.floor(filters.startTime / 1000)}&endTime=${Math.floor(filters.endTime / 1000)}`,
+			);
+
+			let response = await request;
+			if (response.ok) {
+				return response.json();
+			} else {
+				throw new Error("Some error occured");
+			}
+		},
+
+		async createAudit(data) {
+			const payload = {
+				startTime: Math.floor(new Date(data.startTime).getTime() / 1000),
+				endTime: Math.floor(new Date(data.endTime).getTime() / 1000),
+				location: data.location,
+				summary: data.summary,
+			};
+
+			let [request, abort] = this.makeRequest("POST", "/audits", payload);
+
+			let response = await request;
+
+			return response;
+		},
+
 		async getAuditsByLocation(locationId) {
 			let [request, abort] = this.makeRequest("GET", `/audits/location/${locationId}`);
 

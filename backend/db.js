@@ -63,25 +63,36 @@ export class Database {
 	 */
 	async getBookings(startWeek, endWeek, users, location) {
 		const result = await this.db`
-			SELECT "userId", "startTime", "endTime", "location"
+			SELECT "id", "userId", "startTime", "endTime", "location"
 			FROM booking
 			WHERE "startTime" >= ${startWeek}
 			AND ("endTime" <= ${endWeek} OR "endTime" IS NULL)
 			${users && users.length > 0 ? this.db`AND "userId" IN ${this.db(users)}` : this.db``}
 			${location ? this.db`AND location = ${location}` : this.db``};`;
-		const uniqueUsers = await Promise.all(
-			result
-				.map(b => b.userId)
-				.filter((v, i, a) => a.indexOf(v) === i)
-				.map(uId => this.getUser(uId)),
-		);
+		const [uniqueUsers, uniqueLocations] = await Promise.all([
+			Promise.all(
+				result
+					.map(b => b.userId)
+					.filter((v, i, a) => a.indexOf(v) === i)
+					.map(uId => this.getUser(uId)),
+			),
+			Promise.all(
+				result
+					.map(b => b.location)
+					.filter((v, i, a) => a.indexOf(v) === i)
+					.map(l => this.getLocation(l)),
+			),
+		]);
 		const usersMap = Object.fromEntries(uniqueUsers.map(u => [u.id, u]));
+		const locationMap = Object.fromEntries(uniqueLocations.map(l => [l.id, l]));
 		return result.map(b => {
 			return {
+				id: b.id,
 				startTime: b.startTime,
 				endTime: b.endTime,
 				location: b.location,
 				user: usersMap[b.userId],
+				location: locationMap[b.location],
 			};
 		});
 	}
@@ -396,10 +407,12 @@ export class Database {
 			)[0];
 		}
 
-		return this.db`
+		return (
+			await this.db`
 			INSERT INTO "audit" ("userId", "startTime", "endTime", "location", "summary", "approved")
 			VALUES (${userId}, ${timeIn}, ${timeOut}, ${locationId}, ${summary},${approved})
-			RETURNING *;`[0];
+			RETURNING *;`
+		)[0];
 	}
 
 	async getActiveAudit(userId) {
@@ -451,14 +464,6 @@ export class Database {
 			)[0] ?? null
 		);
 	}
-	async getAuditsByLocation(id) {
-		return this.db`
-			SELECT *
-			FROM audit
-			WHERE "location" = ${id}
-
-		`;
-	}
 
 	async editAudit(id, startTime, endTime, summary, approved, location) {
 		return this.db`
@@ -467,23 +472,49 @@ export class Database {
 
 	/**
 	 *
-	 * @param {number=} start
-	 * @param {number=} end
-	 * @param {string[]=} users
+	 * @param {object} obj
+	 * @param {number=} obj.startTime
+	 * @param {number=} obj.endTime
+	 * @param {string[]=} obj.users
+	 * @param {string[]=} obj.location
 	 */
-	async getAudits(startWeek, endWeek, users) {
-		if (users == null || users.length == 0) {
-			return this.db`
-                SELECT *
-                FROM audit
-                WHERE "startTime">=${startWeek} AND "endTime"<=${endWeek};`;
-		}
-		return this.db`
-                SELECT *
-                FROM audit
-                WHERE "startTime" >= ${startWeek}
-                        AND "endTime" <= ${endWeek}
-                        AND "userId" IN (${this.db(users)});`;
+	async getAudits({ startTime, endTime, users, location }) {
+		const result = await this.db`
+			SELECT *
+			FROM audit
+			WHERE "startTime" >= ${startTime}
+				AND "endTime" <= ${endTime}
+				${users == null || users.length == 0 ? this.db`` : this.db`AND "userId" IN (${this.db(users)})`}
+				${location ? this.db`AND "location" = ${location}` : this.db``}`;
+
+		const [uniqueUsers, uniqueLocations] = await Promise.all([
+			Promise.all(
+				result
+					.map(a => a.userId)
+					.filter((v, i, a) => a.indexOf(v) === i)
+					.map(uId => this.getUser(uId)),
+			),
+			Promise.all(
+				result
+					.map(a => a.location)
+					.filter((v, i, a) => a.indexOf(v) === i)
+					.map(l => this.getLocation(l)),
+			),
+		]);
+		const usersMap = Object.fromEntries(uniqueUsers.map(u => [u.id, u]));
+		const locationMap = Object.fromEntries(uniqueLocations.map(l => [l.id, l]));
+		return result.map(a => {
+			return {
+				id: a.id,
+				startTime: a.startTime,
+				endTime: a.endTime,
+				location: a.location,
+				summary: a.summary,
+				approved: a.approved,
+				user: usersMap[a.userId],
+				location: locationMap[a.location],
+			};
+		});
 	}
 
 	deleteAudit(auditId) {
