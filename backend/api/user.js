@@ -49,7 +49,7 @@ if (config.testMode) {
 					`${req.ip} - ${req.get("User-Agent")}`,
 				);
 				res.cookie("session", cookie);
-				res.redirect("/api/v1/user/session"); // prevent reloading from generating a new cookie
+				res.redirect("/"); // prevent reloading from generating a new cookie
 				return;
 			}
 		}
