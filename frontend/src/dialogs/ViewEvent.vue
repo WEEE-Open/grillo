@@ -2,6 +2,7 @@
 import { mapActions } from "pinia";
 import ConfirmYN from "./ConfirmYN.vue";
 import { useServer } from "@/stores/server";
+import { formatDateTime } from "@/plugins/utils";
 
 export default {
 	inject: ["dialog"],
@@ -18,17 +19,8 @@ export default {
 	methods: {
 		...mapActions(useServer, ["deleteEvent"]),
 
-		formatDateTime(date) {
-			if (!date) return "";
-			const d = date instanceof Date ? date : new Date(date);
-			return d.toLocaleString("it-IT", {
-				year: "numeric",
-				month: "2-digit",
-				day: "2-digit",
-				hour: "2-digit",
-				minute: "2-digit",
-			});
-		},
+		formatDateTime,
+
 		async handleDelete() {
 			let result = await this.dialog(ConfirmYN, {
 				title: "Confirm deleting event?",
