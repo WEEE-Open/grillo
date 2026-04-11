@@ -466,8 +466,8 @@ export class Database {
 	}
 
 	async editAudit(id, startTime, endTime, summary, approved, location) {
-		return this.db`
-		UPDATE audit SET "startTime" = ${startTime}, "endTime" = ${endTime}, "summary" = ${summary}, "approved" = ${approved}, "location" =${location} WHERE id = ${id} RETURNING *;`;
+		return (await this.db`
+		UPDATE audit SET "startTime" = ${startTime}, "endTime" = ${endTime}, "summary" = ${summary}, "approved" = ${approved}, "location" =${location} WHERE id = ${id} RETURNING *;`)[0];
 	}
 
 	/**

@@ -1,26 +1,17 @@
 <script>
 import { useServer } from "../stores/server";
-import { mapActions } from "pinia";
+import { mapActions, mapState } from "pinia";
 
 export default {
 	props: {
 		isOpen: Boolean,
-
-		isAdmin: Boolean,
-		locations: Array,
 	},
 	data() {
-		let preselectedLocation = "";
-
-		if (this.locations.length > 0) {
-			preselectedLocation = this.locations.find(l => l.default) || this.locations[0] || "";
-		}
-
 		return {
 			saving: false,
 
 			type: "booking",
-			location: preselectedLocation,
+			location: "",
 			title: "",
 			description: "",
 			startTime: "",
@@ -29,6 +20,8 @@ export default {
 		};
 	},
 	computed: {
+		...mapState(useServer, ["session", "locations"]),
+
 		locationRules() {
 			if (!this.location) return ["Location is required"];
 			return [];
@@ -61,6 +54,16 @@ export default {
 				this.locationRules.length === 0
 			);
 		},
+	},
+	watch: {
+		locations: {
+			handler() {
+				if (this.locations.length > 0 && this.location == "") {
+					this.location = this.locations.find(l => l.default) || this.locations[0] || "";
+				}
+			},
+			immediate: true,
+		}
 	},
 	methods: {
 		...mapActions(useServer, ["createBooking", "createEvent"]),
@@ -114,7 +117,7 @@ export default {
 			<v-card-text>
 				<v-container>
 					<v-row>
-						<v-col cols="12" v-if="isAdmin">
+						<v-col cols="12" v-if="session?.isAdmin">
 							<v-btn-toggle v-model="type" color="secondary" border mandatory class="w-100">
 								<v-btn value="booking" class="w-50">Booking</v-btn>
 								<v-btn value="event" class="w-50">Event</v-btn>

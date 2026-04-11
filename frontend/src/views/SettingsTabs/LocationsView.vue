@@ -8,7 +8,6 @@ const NAME_MAX_LENGTH = 255;
 export default {
 	data() {
 		return {
-			locations: [],
 			loading: false,
 			dialog: false,
 			bulkMoveDialog: false,
@@ -37,6 +36,7 @@ export default {
 		};
 	},
 	computed: {
+		...mapState(useServer, ["locations"]),
 		maxLength() {
 			return NAME_MAX_LENGTH; //return the const usable in the template
 		},
@@ -83,21 +83,14 @@ export default {
 	},
 	methods: {
 		...mapActions(useServer, [
-			"getLocations",
 			"createLocation",
 			"updateLocation",
 			"deleteLocation",
 			"setConfig",
 			"getAuditsByLocation",
 			"bulkMoveAudits",
+			"updateLocationsCache",
 		]),
-		async fetchLocations() {
-			try {
-				this.locations = await this.getLocations();
-			} catch (error) {
-				console.error("Locations fetch failed:", error);
-			}
-		},
 		generateLocationId(name) {
 			return name
 				.toLowerCase()
@@ -117,7 +110,7 @@ export default {
 
 				if (result) {
 					this.dialog = false;
-					await this.fetchLocations();
+					await this.updateLocationsCache();
 				}
 			} catch (error) {
 				console.error(
@@ -131,7 +124,7 @@ export default {
 			try {
 				let result = await this.deleteLocation(item);
 				if (result) {
-					this.fetchLocations(); //check if there is a better method lolz
+					this.updateLocationsCache();
 					this.confirmDialogDelete = false;
 				}
 			} catch (error) {
@@ -143,7 +136,7 @@ export default {
 			try {
 				let result = await this.setConfig("defaultLocation", item.id);
 				if (result) {
-					this.fetchLocations(); //check if there is a better method lolz
+					this.updateLocationsCache();
 					this.confirmDialogDefault = false;
 				}
 			} catch (error) {
@@ -191,7 +184,7 @@ export default {
 				this.loading = true;
 				await this.bulkMoveAudits(this.bulkMove.from, this.bulkMove.to);
 				this.bulkMoveDialog = false;
-				await this.fetchLocations();
+				await this.updateLocationsCache();
 			} catch (error) {
 				console.error("Bulk move failed:", error);
 			} finally {
@@ -235,9 +228,6 @@ export default {
 			}
 		},
 	},
-	mounted() {
-		this.fetchLocations();
-	},
 };
 </script>
 
@@ -259,7 +249,7 @@ export default {
 						>Bulk Move</v-btn
 					>
 					<v-btn color="primary" prepend-icon="mdi-plus" @click="add">Add Location</v-btn>
-					<v-btn class="ml-2" @click="fetchLocations">Refresh</v-btn>
+					<v-btn class="ml-2" @click="updateLocationsCache">Refresh</v-btn>
 				</v-toolbar>
 			</template>
 			<template v-slot:item.id="{ item }">

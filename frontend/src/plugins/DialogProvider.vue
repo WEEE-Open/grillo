@@ -20,6 +20,18 @@ export default {
 				});
 			});
 		},
+		replaceDialog(oldId, component, props = {}) {
+			const oldIndex = this.dialogs.findIndex(d => d.id === oldId);
+			this.dialogs[oldIndex].props.isOpen = false;
+			const id = Symbol();
+			this.dialogs.push({
+				id,
+				component: markRaw(component),
+				props: { ...props, isOpen: true },
+				resolve: this.dialogs[oldIndex].resolve,
+				reject: this.dialogs[oldIndex].reject,
+			});
+		},
 		closeDialog(id, result) {
 			const index = this.dialogs.findIndex(d => d.id === id);
 			if (index !== -1) {
@@ -49,6 +61,7 @@ export default {
 		:key="d.id"
 		:is="d.component"
 		v-bind="d.props"
+		@replace="(component, props) => replaceDialog(d.id, component, props)"
 		@close="closeDialog(d.id, $event)"
 		@closed="removeFromStack(d.id)"
 	/>

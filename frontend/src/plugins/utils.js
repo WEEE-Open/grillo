@@ -12,3 +12,13 @@ export function formatDateTime(date) {
         minute: "2-digit",
     });
 }
+
+export function formatHms(seconds) {
+    const hours = Math.floor(seconds/3600);
+    const minutes = Math.floor(seconds/60 - hours * 60);
+    let formatted = (hours > 0 ? hours + "h " : "") + (minutes > 0 ? minutes + "m " : "");
+    if (formatted == "") {
+        formatted = seconds + "s ";
+    }
+    return formatted;
+}

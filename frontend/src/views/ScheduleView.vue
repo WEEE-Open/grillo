@@ -20,7 +20,6 @@ export default {
 			bookings: [],
 			bookDialog: false,
 			loading: false,
-			locations: [],
 			focus: monday,
 			bookingForm: {
 				startTime: "",
@@ -33,9 +32,6 @@ export default {
 			selectedElement: null,
 			selectedOpen: false,
 		};
-	},
-	mounted() {
-		this.fetchLocations();
 	},
 	computed: {
 		...mapState(useServer, ["session"]),
@@ -58,15 +54,7 @@ export default {
 		},
 	},
 	methods: {
-		...mapActions(useServer, ["getBookings", "getLocations", "getEvents"]),
-
-		async fetchLocations() {
-			try {
-				this.locations = await this.getLocations();
-			} catch (error) {
-				console.log("Locations fetch failed: ", error);
-			}
-		},
+		...mapActions(useServer, ["getBookings", "getEvents"]),
 
 		async fetchBookings(startOfWeek) {
 			try {
@@ -114,10 +102,7 @@ export default {
 		},
 
 		async openAddEventDialog() {
-			await this.dialog(CreateBooking, {
-				isAdmin: this.session.isAdmin,
-				locations: this.locations,
-			});
+			await this.dialog(CreateBooking);
 
 			this.fetchBookings(this.focus);
 			this.fetchEvents();

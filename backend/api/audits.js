@@ -304,17 +304,18 @@ export const auditsIdPatch = {
 			}),
 			v.check(input => !!input.oldAudit, "Invalid id"), // Not entirely satisfied with this because it returns 400 instead of 404, but it'll do for now
 			v.transform(input => {
-				if (input.location) input.location = input.oldAudit.location;
-				if (input.approved) input.approved = input.oldAudit.approved;
-				if (input.summary) input.summary = input.oldAudit.summary;
-				if (input.startTime) input.startTime = input.oldAudit.startTime;
-				if (input.endTime) input.endTime = input.oldAudit.endTime;
+				if (!input.location) input.location = input.oldAudit.location;
+				if (input.approved == undefined) input.approved = input.oldAudit.approved;
+				if (!input.summary) input.summary = input.oldAudit.summary;
+				if (!input.startTime) input.startTime = input.oldAudit.startTime;
+				if (!input.endTime) input.endTime = input.oldAudit.endTime;
 				return input;
 			}),
 			v.transform(input => {
 				if (!req.session.isAdmin) {
 					input.approved = false;
 				}
+				return input;
 			}),
 			v.check(input => {
 				if (input.startTime && input.endTime) {

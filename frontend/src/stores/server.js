@@ -8,6 +8,7 @@ export const useServer = defineStore("server", {
 		blocked: false,
 		session: null,
 		servicesLinks: [],
+		locations: [],
 	}),
 	actions: {
 		makeRequest(method, path, body = null) {
@@ -28,6 +29,7 @@ export const useServer = defineStore("server", {
 		async init() {
 			await this.verifySession();
 			await this.loadConfig();
+			await this.updateLocationsCache();
 			this.initiated = true;
 		},
 		async verifySession() {
@@ -153,6 +155,10 @@ export const useServer = defineStore("server", {
 				console.error("Token creation failed:", error);
 				throw error;
 			}
+		},
+
+		async updateLocationsCache() {
+			this.locations = await this.getLocations();
 		},
 
 		async getLocations() {
@@ -372,6 +378,8 @@ export const useServer = defineStore("server", {
 				summary: data.summary,
 			};
 
+			if (data.approved != undefined) payload.approved = data.approved;
+
 			let [request, abort] = this.makeRequest("POST", "/audits", payload);
 
 			let response = await request;
@@ -388,6 +396,23 @@ export const useServer = defineStore("server", {
 			} else {
 				throw new Error("Some error occured");
 			}
+		},
+
+		async editAudit(id, data) {
+			const payload = {
+				startTime: Math.floor(new Date(data.startTime).getTime() / 1000),
+				endTime: Math.floor(new Date(data.endTime).getTime() / 1000),
+				location: data.location,
+				summary: data.summary,
+			};
+
+			if (data.approved != undefined) payload.approved = data.approved;
+
+			let [request, abort] = this.makeRequest("PATCH", `/audits/${id}`, payload);
+
+			let response = await request;
+
+			return response;
 		},
 
 		async bulkMoveAudits(fromId, toId) {
